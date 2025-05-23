@@ -10,6 +10,9 @@ vql_executable
 VQL/
 test_dir/
 
+# Archive directory
+Archive - IGNORE/
+
 # IDE files
 .vscode/
 .idea/
