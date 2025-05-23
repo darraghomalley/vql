@@ -1,0 +1,62 @@
+# Rust build artifacts
+/target/
+**/*.rs.bk
+*.pdb
+
+# VQL executable
+vql_executable
+
+# VQL storage files (local development)
+VQL/
+test_dir/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+*.tmp
+*.temp
+
+# Log files
+*.log
+
+# Environment files
+.env
+.env.local
+
+# Test coverage
+*.profraw
+*.profdata
+/coverage/
+
+# Cargo lock for libraries (uncomment if this is a library)
+# Cargo.lock
+
+# Node modules (if we add TypeScript MCP server)
+node_modules/
+dist/
+*.js
+*.js.map
+*.d.ts
+
+# Python cache (if we add Python components)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Documentation build
+/docs/_build/
+/docs/_site/
+
+# Temporary files
+*.orig
+*.rej

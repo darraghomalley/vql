@@ -1,0 +1,106 @@
+{
+  "version": "1.0.0",
+  "created": "2025-05-21T09:03:24Z",
+  "last_modified": "2025-05-21T09:03:24Z",
+  "commands": {
+    "er": {
+      "name": "er",
+      "description": "Entity Register - Manages entity definitions",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
+    },
+    "ar": {
+      "name": "ar",
+      "description": "Asset Register - Manages asset references",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
+    },
+    "st": {
+      "name": "st",
+      "description": "Store - Stores a review for an asset",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
+    },
+    "se": {
+      "name": "se",
+      "description": "Set Exemplar - Sets exemplar status for an asset",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
+    },
+    "at": {
+      "name": "at",
+      "description": "Asset Type - Manages asset types",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
+    },
+    "sc": {
+      "name": "sc",
+      "description": "Set Compliance - Sets compliance rating for an asset",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
+    },
+    "rv": {
+      "name": "rv",
+      "description": "Review - AI-assisted review of assets (LLM only)",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
+    },
+    "pr": {
+      "name": "pr",
+      "description": "Principle - Manages principles for reviewing assets",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
+    },
+    "rf": {
+      "name": "rf",
+      "description": "Refactor - AI-assisted refactoring of assets (LLM only)",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
+    },
+    "setup": {
+      "name": "setup",
+      "description": "Creates VQL directory in current location",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
+    }
+  },
+  "asset_types": {},
+  "entities": {},
+  "principles": {
+    "u": {
+      "short_name": "u",
+      "long_name": "UI/UX",
+      "guidance": "UI/UX evaluation guidelines",
+      "last_modified": "2025-05-21T09:03:24Z"
+    },
+    "a": {
+      "short_name": "a",
+      "long_name": "Architecture",
+      "guidance": "Architecture evaluation guidelines",
+      "last_modified": "2025-05-21T09:03:24Z"
+    },
+    "p": {
+      "short_name": "p",
+      "long_name": "Performance",
+      "guidance": "Performance evaluation guidelines",
+      "last_modified": "2025-05-21T09:03:24Z"
+    },
+    "s": {
+      "short_name": "s",
+      "long_name": "Security",
+      "guidance": "Security evaluation guidelines",
+      "last_modified": "2025-05-21T09:03:24Z"
+    }
+  },
+  "asset_references": {}
+}

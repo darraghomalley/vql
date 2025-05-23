@@ -1,0 +1,12 @@
+[build]
+# Optional: Uncomment these lines to enable static linking for cross-platform compatibility
+# rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.x86_64-pc-windows-msvc]
+# Windows-specific optimizations
+
+[target.x86_64-apple-darwin]
+# macOS-specific optimizations
+
+[target.x86_64-unknown-linux-gnu]
+# Linux-specific optimizations

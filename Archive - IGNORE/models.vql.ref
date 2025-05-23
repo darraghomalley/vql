@@ -1,0 +1,5 @@
+# VQL MODELS CACHE v1.0
+# This file stores architectural assessments for model components
+# Format: ASSET:[+ref] | LAST_UPDATE:[timestamp] | EXEMPLAR:[T/F] | ARCH:[H/M/L] | SEC:[H/M/L] | PERF:[H/M/L]
+# Followed by section-specific analysis
+

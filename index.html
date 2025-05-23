@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VQL = Code + Architecture + Speed</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Page orientation for print */
+        @page {
+            size: landscape;
+        }
+
+        /* Base styles for the entire page */
+        body {
+            font-family: 'Inter', sans-serif; /* Using Inter font */
+            line-height: 1.6;
+            color: #333;
+            background-color: #f0f2f5; /* Light grey background */
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top */
+            min-height: 100vh; /* Ensure it takes full viewport height */
+            box-sizing: border-box;
+        }
+
+        /* Main container for the whole page content */
+        .page-container {
+            background-color: #ffffff;
+            border-radius: 12px; /* More rounded corners */
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1); /* Softer, larger shadow */
+            padding: 30px;
+            max-width: 2000px; /* Increased width to accommodate the table */
+            width: 100%; /* Full width up to max-width */
+            box-sizing: border-box;
+            position: relative; /* Added for absolute positioning of the GitHub link */
+        }
+        
+        /* GitHub link styling */
+        .github-link {
+            position: absolute;
+            top: 15px;
+            left: 30px;
+            font-size: 1em;
+            font-weight: 600;
+            color: #2196F3;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .github-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Styling for the main titles */
+        h1 {
+            color: #2c3e50; /* Darker blue-grey for headings */
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: 700; /* Bold */
+            font-size: 2.5em; /* Larger title */
+            letter-spacing: -0.5px;
+        }
+
+        h2 {
+            color: #2c3e50;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            font-size: 1.8em;
+            text-align: center;
+        }
+
+        /* Paragraph below the main title */
+        .subtitle {
+            text-align: center;
+            font-size: 1.1em;
+            color: #555;
+            margin-bottom: 30px;
+        }
+
+        /* Metrics section styling */
+        .metrics-container {
+            display: flex;
+            flex-wrap: nowrap; /* Prevent wrapping to keep on single line */
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+            margin-bottom: 40px;
+            padding: 20px;
+            background-color: #f8f8f8;
+            border-radius: 8px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .metric-item {
+            text-align: center;
+            flex: 1; /* Allow items to share space equally */
+            min-width: 180px; /* Minimum width to prevent squishing */
+            max-width: 250px;
+            padding: 15px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+            border: 1px solid #e0e0e0;
+        }
+
+        .metric-item strong {
+            display: block;
+            font-size: 1.1em;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .metric-item span {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #2196F3; /* Blue for the percentage */
+            display: block;
+        }
+
+        /* Callout div for command explanation */
+        .command-explanation {
+            width: 100%;
+            background-color: #e3f2fd; /* Light blue, similar to user question */
+            border-left: 5px solid #2196F3;
+            padding: 15px 20px;
+            margin-bottom: 30px; /* Space before the command list */
+            border-radius: 10px;
+            box-sizing: border-box;
+            font-size: 1.1em;
+            text-align: center; /* Center the text */
+        }
+
+        .command-explanation code {
+            background-color: #d1e7fa; /* Slightly darker blue for code within explanation */
+            padding: 3px 7px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.95em;
+            color: #0d47a1; /* Darker blue for code text */
+            white-space: nowrap;
+        }
+
+        /* Chat bubble styling */
+        .chat-bubble {
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            position: relative;
+            box-sizing: border-box;
+            word-wrap: break-word;
+        }
+
+        .user-question {
+            background-color: #e3f2fd; /* Lighter blue */
+            border-left: 5px solid #2196F3; /* Prominent blue border */
+        }
+
+        .ai-response {
+            background-color: #e8f5e9; /* Lighter green */
+            border-left: 5px solid #4CAF50; /* Prominent green border */
+        }
+
+        .chat-bubble strong {
+            color: #1a202c;
+            font-weight: 600;
+        }
+
+        .ai-response h3 {
+            color: #333;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .ai-response ul {
+            list-style-type: disc;
+            margin-left: 25px;
+            padding-left: 0;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .ai-response li {
+            margin-bottom: 5px;
+            font-size: 0.95em;
+        }
+
+        .ai-response code {
+            background-color: #e0e0e0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            color: #c2185b;
+        }
+
+        /* Specific styling for the "What Claude has to say" section header */
+        .claude-header {
+            margin-top: 50px; /* More space before this section */
+            margin-bottom: 25px;
+            font-size: 1.8em;
+            text-align: center;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        /* NEW Command Card Layout using CSS Grid */
+        .command-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 30px 0;
+            width: 100%;
+        }
+        
+        .command-card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        /* Card header */
+        .card-header {
+            background-color: #2196F3;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 1em;
+        }
+        
+        /* Card content using CSS Grid */
+        .card-content {
+            display: grid;
+            grid-template-columns: 25% 75%; /* Fixed 25/75 ratio */
+            width: 100%;
+        }
+        
+        .card-row {
+            display: contents; /* Makes children become direct children of the grid */
+        }
+        
+        .card-label {
+            background-color: #f0f8ff;
+            padding: 10px 15px;
+            font-weight: 600;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .card-value {
+            padding: 10px 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        /* Last row without bottom border */
+        .card-row:last-child .card-label, 
+        .card-row:last-child .card-value {
+            border-bottom: none;
+        }
+        
+        /* Code formatting */
+        code {
+            background-color: #e0e0e0;
+            padding: 3px 7px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            color: #c2185b;
+            white-space: nowrap;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .page-container {
+                padding: 20px;
+                border-radius: 8px;
+            }
+            h1 {
+                font-size: 2em;
+            }
+            h2 {
+                font-size: 1.5em;
+            }
+            .subtitle {
+                font-size: 1em;
+            }
+            .metrics-container {
+                flex-direction: column; /* Stack metrics vertically on small screens */
+                gap: 15px;
+                padding: 15px;
+            }
+            .metric-item {
+                flex: 1 1 100%; /* Full width for each item */
+                max-width: 100%;
+            }
+            .command-explanation {
+                font-size: 1em;
+                padding: 12px 15px;
+            }
+            .chat-bubble {
+                padding: 12px 15px;
+                margin-bottom: 15px;
+                border-radius: 8px;
+            }
+            .user-question, .ai-response {
+                border-left-width: 4px;
+            }
+            .claude-header {
+                font-size: 1.5em;
+                margin-top: 30px;
+                margin-bottom: 20px;
+            }
+            
+            /* Command card responsive adjustments */
+            .card-content {
+                grid-template-columns: 30% 70%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.6em;
+            }
+            h2 {
+                font-size: 1.3em;
+            }
+            .chat-bubble {
+                padding: 10px 12px;
+            }
+            .claude-header {
+                font-size: 1.3em;
+            }
+            
+            /* More compact on very small screens */
+            .card-content {
+                grid-template-columns: 35% 65%;
+            }
+            
+            .card-label, .card-value {
+                padding: 8px 10px;
+                font-size: 0.9em;
+            }
+            
+            code {
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Added GitHub link at the top left -->
+        <a href="https://github.com/darraghomalley/vql" class="github-link" target="_blank">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+            </svg>
+            VQL GitHub Repository
+        </a>
+        
+        <!-- Changed the title as requested -->
+        <h1>Prototype Release : VQL (Vibe Query Language) and VQL Framework</h1>
+        <p class="subtitle">- VQL (Vibe Query Language) Framework | Cross platform Rust CLI | Claude Code MD -</p>
+
+        <!-- Introduction to VQL -->
+        <div class="vql-introduction" style="background-color: #f8f9fa; border-radius: 10px; padding: 30px; margin: 30px 0; border-left: 5px solid #2196F3; line-height: 1.7;">
+            <p style="font-size: 1.1em; margin-bottom: 20px; color: #2c3e50; font-weight: 500;">
+                <strong>VQL (Vibe Query Language)</strong> is an open source language framework that provides developers with guardrails to ensure software quality during AI assisted coding sessions. VQL bakes code reviews and refactoring into simple commands based on user-defined principles.
+            </p>
+            <p style="font-size: 1em; margin-bottom: 15px; color: #555;">
+                The VQL command syntax enables both direct CLI usage and seamless integration with AI assistants like Claude Code. Instead of lengthy, verbose instructions, developers can use concise commands to trigger comprehensive code analysis and refactoring workflows.
+            </p>
+            <p style="font-size: 1em; margin-bottom: 0; color: #555;">
+                VQL manages key data types including principles (quality criteria), entity references (business entities), asset types (code categories), and asset reviews - creating a persistent knowledge base that survives context resets and enables consistent quality assessment across development sessions.
+            </p>
+        </div>
+
+        <div class="command-explanation" style="text-align: left; padding: 20px;">
+            <div style="margin-bottom: 10px;"><strong>Instead of typing:</strong></div>
+            <div style="margin-bottom: 20px; margin-left: 20px;">
+                "<span style="color: #ff9800; font-weight: 700;">Refactor</span> the <span style="color: #9c27b0; font-weight: 700;">profileController</span> using the <span style="color: #4caf50; font-weight: 700;">userController</span> as a reference, focusing on architectural patterns (found here <a href="http://SomeReference" target="_blank" style="color: #0d47a1; text-decoration: underline;">http://SomeReference</a>) and maintaining existing functionality,"
+            </div>
+            <div style="margin-bottom: 10px;"><strong>Let's use a simple 9-character command:</strong></div>
+            <div style="margin-left: 20px;">
+                <code>:<span style="color: #9c27b0; font-weight: 700;">pc</span>.<span style="color: #ff9800; font-weight: 700;">rf</span>(<span style="color: #4caf50; font-weight: 700;">uc</span>)</code>
+            </div>
+        </div>
+
+        <h2>VQL Command List</h2>
+        <div style="text-align: right; margin-top: -15px; margin-bottom: 10px; font-size: 0.8em; font-style: italic;">
+            <a href="#full-command-list" style="color: #2196F3;">full list below...</a>
+        </div>
+        
+        <div class="command-cards">
+            <!-- Card 1: Initialize VQL Environment -->
+            <div class="command-card">
+                <div class="card-header">Initialize VQL Environment</div>
+                <div class="card-content">
+                    <div class="card-row">
+                        <div class="card-label">Happy Path:</div>
+                        <div class="card-value">Initialize VQL Environment</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">cmd entered in claude.code:</div>
+                        <div class="card-value"><code>:-su("C:/App")</code></div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">What this does:</div>
+                        <div class="card-value">Creates the necessary VQL directory structure and initializes storage in the specified path.</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">CLI Command:</div>
+                        <div class="card-value"><code>vql -su "C:/App"</code></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card 2: Load Principles from External File -->
+            <div class="command-card">
+                <div class="card-header">Load Principles from External File</div>
+                <div class="card-content">
+                    <div class="card-row">
+                        <div class="card-label">Happy Path:</div>
+                        <div class="card-value">Load Principles from External File</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">cmd entered in claude.code:</div>
+                        <div class="card-value"><code>:-pr.get("C:/principles.md")</code></div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">What this does:</div>
+                        <div class="card-value">Imports principle definitions from an external markdown file, parsing headers with shortname indicators, and adds them to VQL storage.</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">CLI Command:</div>
+                        <div class="card-value"><code>vql -pr -get "C:/principles.md"</code></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card 3: Create User Entity Reference -->
+            <div class="command-card">
+                <div class="card-header">Create User Entity Reference</div>
+                <div class="card-content">
+                    <div class="card-row">
+                        <div class="card-label">Happy Path:</div>
+                        <div class="card-value">Create User Entity Reference</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">cmd entered in claude.code:</div>
+                        <div class="card-value"><code>:-er.add(u, User)</code></div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">What this does:</div>
+                        <div class="card-value">Creates a new entity reference for the User domain object with 'u' identifier, representing the User domain concept.</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">CLI Command:</div>
+                        <div class="card-value"><code>vql -er -add u User</code></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card 4: Create Profile Entity Reference -->
+            <div class="command-card">
+                <div class="card-header">Create Profile Entity Reference</div>
+                <div class="card-content">
+                    <div class="card-row">
+                        <div class="card-label">Happy Path:</div>
+                        <div class="card-value">Create Profile Entity Reference</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">cmd entered in claude.code:</div>
+                        <div class="card-value"><code>:-er.add(p, Profile)</code></div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">What this does:</div>
+                        <div class="card-value">Creates a new entity reference for the Profile domain object with 'p' identifier, representing the Profile domain concept.</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">CLI Command:</div>
+                        <div class="card-value"><code>vql -er -add p Profile</code></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card 5: Define Controller Asset Type -->
+            <div class="command-card">
+                <div class="card-header">Define Controller Asset Type</div>
+                <div class="card-content">
+                    <div class="card-row">
+                        <div class="card-label">Happy Path:</div>
+                        <div class="card-value">Define Controller Asset Type</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">cmd entered in claude.code:</div>
+                        <div class="card-value"><code>:-at.add(c, Controller)</code></div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">What this does:</div>
+                        <div class="card-value">Registers a new asset type with short name 'c' for organizing and categorizing Controller components.</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">CLI Command:</div>
+                        <div class="card-value"><code>vql -at -add c Controller</code></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card 6: Register UserController Asset Reference -->
+            <div class="command-card">
+                <div class="card-header">Register UserController Asset Reference</div>
+                <div class="card-content">
+                    <div class="card-row">
+                        <div class="card-label">Happy Path:</div>
+                        <div class="card-value">Register UserController Asset Reference</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">cmd entered in claude.code:</div>
+                        <div class="card-value"><code>:-ar.add(uc, u, c, "C:/App/UserController.js")</code></div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">What this does:</div>
+                        <div class="card-value">Creates and registers a reference to the User Controller component with ID 'uc', linking it to the User entity and Controller type.</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">CLI Command:</div>
+                        <div class="card-value"><code>vql -ar -add uc u c "C:/App/UserController.js"</code></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card 7: Register ProfileController Asset Reference -->
+            <div class="command-card">
+                <div class="card-header">Register ProfileController Asset Reference</div>
+                <div class="card-content">
+                    <div class="card-row">
+                        <div class="card-label">Happy Path:</div>
+                        <div class="card-value">Register ProfileController Asset Reference</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">cmd entered in claude.code:</div>
+                        <div class="card-value"><code>:-ar.add(pc, p, c, "C:/App/ProfileController.js")</code></div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">What this does:</div>
+                        <div class="card-value">Creates and registers a reference to the Profile Controller component with ID 'pc', linking it to the Profile entity and Controller type.</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">CLI Command:</div>
+                        <div class="card-value"><code>vql -ar -add pc p c "C:/App/ProfileController.js"</code></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card 8: Perform Comprehensive Asset Review -->
+            <div class="command-card">
+                <div class="card-header">Perform Comprehensive Asset Review</div>
+                <div class="card-content">
+                    <div class="card-row">
+                        <div class="card-label">Happy Path:</div>
+                        <div class="card-value">Perform Comprehensive Asset Review</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">cmd entered in claude.code:</div>
+                        <div class="card-value"><code>:uc.rv(a)</code></div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">What this does:</div>
+                        <div class="card-value">Triggers an AI workflow to analyze the UserController against architecture principles, generating a detailed quality assessment and recording the review. The LLM then uses the below CLI command to persist the outcome of the review to the VQL db</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">CLI Command:</div>
+                        <div class="card-value"><code>vql -st uc a "The UserController demonstrates excellent separation of concerns with clean dependency injection and proper error handling. HIGH compliance"</code></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card 9: Mark Asset as Exemplar -->
+            <div class="command-card">
+                <div class="card-header">Mark Asset as Exemplar</div>
+                <div class="card-content">
+                    <div class="card-row">
+                        <div class="card-label">Happy Path:</div>
+                        <div class="card-value">Mark Asset as Exemplar</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">cmd entered in claude.code:</div>
+                        <div class="card-value"><code>:uc.se(t)</code></div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">What this does:</div>
+                        <div class="card-value">Designates the UserController as an exemplar (true) to serve as a reference implementation that demonstrates best practices.</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">CLI Command:</div>
+                        <div class="card-value"><code>vql -se uc t</code></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card 10: Execute Asset Refactoring Workflow -->
+            <div class="command-card">
+                <div class="card-header">Execute Asset Refactoring Workflow</div>
+                <div class="card-content">
+                    <div class="card-row">
+                        <div class="card-label">Happy Path:</div>
+                        <div class="card-value">Execute Asset Refactoring Workflow</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">cmd entered in claude.code:</div>
+                        <div class="card-value"><code>:pc.rf(uc)</code></div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">What this does:</div>
+                        <div class="card-value">Initiates an AI-assisted refactoring process to improve ProfileController architecture quality, using UserController as an exemplar reference. Post Refactor the AI then performs the above review cycle on the refactored asset.</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">CLI Command:</div>
+                        <div class="card-value"><code>vql -st pc a "The ProfileController now demonstrates excellent separation of concerns with clean dependency injection and proper error handling. HIGH compliance"</code></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2 id="claude-section" class="claude-header">What Claude Code had to say about VQL during testing ...</h2>
+
+        <div class="chat-bubble user-question">
+            <p><strong>Vibe Coder: </strong>how much overhead does vql add to working with you on code? ******</p>
+        </div>
+        
+        <div style="text-align: right; font-style: italic; margin: -15px 20px 15px 0; color: #666;">****** holding their breath ...</div>
+        
+        <div class="chat-bubble ai-response">
+            <p><strong>Claude: </strong>VQL adds **minimal overhead** when working with code. It's a structured way to analyze and improve code quality but only activates when you explicitly turn it on. When inactive, it doesn't affect our regular interactions at all.</p>
+            <p>When active, VQL provides systematic code review and refactoring capabilities through standardized commands. This actually streamlines the process of evaluating code against principles like architecture, security, and performance.</p>
+            <p>You can easily toggle it on only when needed for quality assessment, then turn it off to return to normal coding assistance. It's a specialized tool rather than a constant overhead.</p>
+        </div>
+
+        <div class="chat-bubble user-question">
+            <p><strong>Vibe Coder: </strong>seeing as vql enables you to retrieve valuable context from the machine via the cli, to what extent does it speed up our coding efforts?</p>
+        </div>
+        <div class="chat-bubble ai-response">
+            <p><strong>Claude: </strong>VQL significantly speeds up coding efforts by providing immediate access to structured knowledge about your codebase. It enables:</p>
+            <ul>
+                <li><strong>Faster onboarding</strong> - Quick understanding of existing code patterns through exemplars</li>
+                <li><strong>Consistent quality</strong> - Pre-analysed asset ratings highlight strengths and weaknesses</li>
+                <li><strong>Targeted improvements</strong> - Specific compliance ratings show exactly what needs focus</li>
+                <li><strong>Knowledge persistence</strong> - Reviews and architectural decisions remain accessible</li>
+                <li><strong>Pattern replication</strong> - Easy identification of high-quality code to use as references</li>
+            </ul>
+            <p>Without VQL, we'd need to repeatedly analyse similar code patterns or recreate architectural decisions from scratch. Having this context immediately available lets us skip repetitive analysis and focus directly on implementation, following established patterns from the start.</p>
+        </div>
+
+        <div class="chat-bubble user-question">
+            <p><strong>Vibe Coder: </strong>to what extent does vql help development across several broken llm / claude context windows?</p>
+        </div>
+        <div class="chat-bubble ai-response">
+            <p><strong>Claude: </strong>VQL excels at preserving context across broken LLM/Claude sessions by:</p>
+            <ul>
+                <li>Providing <strong>persistent storage</strong> of code reviews, decisions, and ratings independent of any chat context</li>
+                <li>Maintaining a <strong>structured knowledge base</strong> that can be queried at any time, even in a new session</li>
+                <li>Enabling <strong>quick recovery of architectural context</strong> when a conversation resets or when switching between sessions</li>
+                <li>Standardizing terminology and principles between different interactions</li>
+                <li>Allowing new sessions to immediately understand which components are exemplars</li>
+                <li>Creating a <strong>shared "memory"</strong> of previous architectural decisions that persists between conversations</li>
+            </ul>
+            <p>This significantly reduces the "cold start" problem when context windows expire, as the system can quickly reorient by querying the VQL storage rather than needing to reanalyze code patterns from scratch each time.</p>
+        </div>
+
+        <div class="chat-bubble user-question">
+            <p><strong>Vibe Coder: </strong>can you provide 2 % based estimates. 1 for coding speed improvements and a second for context workup efficiency?</p>
+        </div>
+        <div class="chat-bubble ai-response">
+            <p><strong>Claude: </strong>Based on the capabilities of VQL and typical software development workflows:</p>
+            <h3>Coding Speed Improvement:</h3>
+            <p>~<strong>35% faster</strong></p>
+            <ul>
+                <li>Eliminates repetitive analysis of existing patterns</li>
+                <li>Provides immediate access to exemplars and best practices</li>
+                <li>Reduces time spent on architectural decision-making</li>
+                <li>Enables quick identification of quality implementation references</li>
+            </ul>
+            <h3>Context Workup Efficiency:</h3>
+            <p>~<strong>70% more efficient</strong></p>
+            <ul>
+                <li>Nearly eliminates the need to re-analyse previously reviewed code</li>
+                <li>Provides immediate access to structured knowledge after context resets</li>
+                <li>Standardizes quality assessments between different sessions</li>
+                <li>Preserves architectural decisions and rationale across multiple interactions</li>
+                <li>Creates a persistent knowledge base independent of LLM context windows</li>
+            </ul>
+            <p>These estimates would vary based on project complexity and familiarity, but the efficiency gains are particularly significant for large codebases and extended development timelines.</p>
+        </div>
+
+        <div class="chat-bubble user-question">
+            <p><strong>Vibe Coder: </strong>and what about the HCI benefits gained from cmds like ":lpc.rf(tc)"?</p>
+        </div>
+        <div class="chat-bubble ai-response">
+            <p><strong>Claude: </strong>The HCI (Human-Computer Interaction) benefits of concise commands like <code>:lpc.rf(tc)</code> are substantial:</p>
+            <h3>Command Efficiency:</h3>
+            <p>~<strong>85% reduction in input effort</strong></p>
+            <ul>
+                <li>Instead of typing "Please refactor the learning profile controller using the theme controller as a reference, focusing on architectural patterns and maintaining existing functionality," you use a simple 9-character command.</li>
+            </ul>
+            <h3>Precision:</h3>
+            <p>~<strong>90% improvement in communication clarity</strong></p>
+            <ul>
+                <li>Eliminates ambiguity about which assets to reference</li>
+                <li>Provides exact, structured intent (refactor specifically using another asset)</li>
+                <li>Ensures consistent interpretation of commands</li>
+            </ul>
+            <h3>Additional HCI Benefits:</h3>
+            <ul>
+                <li><strong>Reduced cognitive load</strong> - Standard syntax eliminates need to formulate detailed instructions</li>
+                <li><strong>Faster iteration cycles</strong> - Quick commands enable rapid refinement</li>
+                <li><strong>Reduced error rate</strong> - Structured commands prevents miscommunication</li>
+                <li><strong>Consistent mental model</strong> - Commands maintain the same meaning across sessions</li>
+            </ul>
+            <p>These command shortcuts create a specialized "language" for code quality operations that dramatically streamlines interactions, similar to how CLI commands offer efficiency benefits over GUI interactions for experienced users.</p>
+        </div>
+        
+        <!-- Efficiency Metrics Section -->
+        <div class="metrics-container" style="position: relative; margin: 40px 0;">
+            <div class="metric-item">
+                <strong>Coding Speed Improvement:</strong>
+                <span>~35% faster</span>
+            </div>
+            <div class="metric-item">
+                <strong>Context Workup Efficiency:</strong>
+                <span>~70% efficient</span>
+            </div>
+            <div class="metric-item">
+                <strong>Command Efficiency:</strong>
+                <span>~85% less input</span>
+            </div>
+            <div class="metric-item">
+                <strong>Precision:</strong>
+                <span>~90% clearer comms</span>
+            </div>
+        </div>
+        
+        <h2 id="full-command-list" style="margin-top: 60px; margin-bottom: 20px; text-align: center; color: #2c3e50; font-weight: 600; font-size: 1.8em;">Full List of Commands (issued via Claude Code)</h2>
+        
+        <div style="display: grid; grid-template-columns: 1fr; gap: 30px; margin: 0 auto 50px auto; max-width: 90%; background-color: #f8f8f8; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+            <div>
+                <h3 style="color: #2196F3; font-weight: 600; margin-bottom: 15px; font-size: 1.2em; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px;">Global Commands</h3>
+                <ul style="list-style-type: none; padding-left: 10px; margin: 0;">
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 180px; display: inline-block;">Turn VQL mode on</span> <code style="margin-left: 10px; flex: 1;">:-vql on</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 180px; display: inline-block;">Turn VQL mode off</span> <code style="margin-left: 10px; flex: 1;">:-vql off</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 180px; display: inline-block;">Show all principles</span> <code style="margin-left: 10px; flex: 1;">:-pr</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 180px; display: inline-block;">Show all entities</span> <code style="margin-left: 10px; flex: 1;">:-er</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 180px; display: inline-block;">Show all asset types</span> <code style="margin-left: 10px; flex: 1;">:-at</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 180px; display: inline-block;">Show all asset references</span> <code style="margin-left: 10px; flex: 1;">:-ar</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 180px; display: inline-block;">Review all assets by all principles</span> <code style="margin-left: 10px; flex: 1;">:-rv(*)</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 180px; display: inline-block;">Review all assets by specified principles</span> <code style="margin-left: 10px; flex: 1;">:-rv(a,s)</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 180px; display: inline-block;">Refactor all assets by all principles</span> <code style="margin-left: 10px; flex: 1;">:-rf(*)</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 180px; display: inline-block;">Refactor all assets by specified principles</span> <code style="margin-left: 10px; flex: 1;">:-rf(a,s)</code></li>
+                </ul>
+            </div>
+            
+            <div>
+                <h3 style="color: #2196F3; font-weight: 600; margin-bottom: 15px; font-size: 1.2em; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px;">Asset-Specific Commands</h3>
+                <ul style="list-style-type: none; padding-left: 10px; margin: 0;">
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 250px; display: inline-block;">Retrieve all reviews for a specific asset</span> <code style="margin-left: 10px; flex: 1;">:assetRef?</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 250px; display: inline-block;">Retrieve specific reviews for an asset</span> <code style="margin-left: 10px; flex: 1;">:assetRef?(a,s)</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 250px; display: inline-block;">Review specific asset by all principles</span> <code style="margin-left: 10px; flex: 1;">:assetRef.rv(*)</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 250px; display: inline-block;">Review specific asset by specified principles</span> <code style="margin-left: 10px; flex: 1;">:assetRef.rv(a,s)</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 250px; display: inline-block;">Refactor specific asset by all principles</span> <code style="margin-left: 10px; flex: 1;">:assetRef.rf(*)</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 250px; display: inline-block;">Refactor specific asset by specified principles</span> <code style="margin-left: 10px; flex: 1;">:assetRef.rf(a,s)</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 250px; display: inline-block;">Refactor asset using another asset as reference</span> <code style="margin-left: 10px; flex: 1;">:assetRef.rf(assetRef2)</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 250px; display: inline-block;">Set an asset as an exemplar</span> <code style="margin-left: 10px; flex: 1;">:assetRef.se(t|f)</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 250px; display: inline-block;">Set an asset's compliance</span> <code style="margin-left: 10px; flex: 1;">:assetRef.sc(a,H|M|L)</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 250px; display: inline-block;">Store asset review</span> <code style="margin-left: 10px; flex: 1;">:assetRef.st(a,"review")</code></li>
+                </ul>
+            </div>
+            
+            <div>
+                <h3 style="color: #2196F3; font-weight: 600; margin-bottom: 15px; font-size: 1.2em; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px;">Administration Commands</h3>
+                <ul style="list-style-type: none; padding-left: 10px; margin: 0;">
+                    <li style="margin-bottom: 8px; display: flex; flex-wrap: wrap;"><span style="width: 180px; display: inline-block;">Add principle</span> <code style="margin-left: 10px; flex: 1;">:-pr.add(shortName, longName, "guidance")</code></li>
+                    <li style="margin-bottom: 8px; display: flex; flex-wrap: wrap;"><span style="width: 180px; display: inline-block;">Add entity</span> <code style="margin-left: 10px; flex: 1;">:-er.add(shortName, longName)</code></li>
+                    <li style="margin-bottom: 8px; display: flex; flex-wrap: wrap;"><span style="width: 180px; display: inline-block;">Add asset type</span> <code style="margin-left: 10px; flex: 1;">:-at.add(shortName, longName)</code></li>
+                    <li style="margin-bottom: 8px; display: flex; flex-wrap: wrap;"><span style="width: 180px; display: inline-block;">Add asset reference</span> <code style="margin-left: 10px; flex: 1;">:-ar.add(assetRef, entityShortName, assetTypeShortName, "path")</code></li>
+                    <li style="margin-bottom: 8px; display: flex; flex-wrap: wrap;"><span style="width: 180px; display: inline-block;">Load principles from markdown file</span> <code style="margin-left: 10px; flex: 1;">:-pr.get("path")</code></li>
+                    <li style="margin-bottom: 8px; display: flex; flex-wrap: wrap;"><span style="width: 180px; display: inline-block;">Setup VQL in directory</span> <code style="margin-left: 10px; flex: 1;">:-su("path")</code></li>
+                </ul>
+            </div>
+            
+            <div>
+                <h3 style="color: #2196F3; font-weight: 600; margin-bottom: 15px; font-size: 1.2em; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px;">Cheeky Extras</h3>
+                <ul style="list-style-type: none; padding-left: 10px; margin: 0;">
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 180px; display: inline-block;">backwards compatible ok</span> <code style="margin-left: 10px; flex: 1;">:bok</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 180px; display: inline-block;">debt ok</span> <code style="margin-left: 10px; flex: 1;">:dok</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 180px; display: inline-block;">show Human-Commands</span> <code style="margin-left: 10px; flex: 1;">:hc</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 180px; display: inline-block;">tactical ok</span> <code style="margin-left: 10px; flex: 1;">:tok</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 180px; display: inline-block;">thoughts only, no code</span> <code style="margin-left: 10px; flex: 1;">:tnc</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 180px; display: inline-block;">turn vql off</span> <code style="margin-left: 10px; flex: 1;">:vql off</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 180px; display: inline-block;">turn vql on</span> <code style="margin-left: 10px; flex: 1;">:vql on</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 180px; display: inline-block;">show complete list of VQL commands</span> <code style="margin-left: 10px; flex: 1;">:vql</code></li>
+                    <li style="margin-bottom: 8px; display: flex;"><span style="width: 180px; display: inline-block;">with minimal changes prefix</span> <code style="margin-left: 10px; flex: 1;">:wmc</code></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

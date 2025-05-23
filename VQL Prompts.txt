@@ -1,0 +1,30 @@
+ACTION--------------------------------------------------CLI VQL Syntax with Examples-----------------------------LLM Virtual VQL Syntax with [Placeholders]----------------------------------------------LLM Virtual VQL Syntax with Examples
+VQL ON                                                  N/A							 :-vql on                                                                                :-vql on
+VQL OFF                                                 N/A							 :-vql off                                                                               :-vql off
+VQL SETUP                                               vql -su	"C:/Project/Folder"                              :-su([ProjectFolderFullPath])                                                           :-su("C:/Project/Folder")
+SHOW ALL PRINCIPLES                                     vql -pr							 :-pr                                                                                    :-pr
+GET PRINCIPLES                                          vql -pr	-get "C:/Reference/Principles.md"                :-pr.get([PrinciplesMdPath]                                                             :-pr.get("C:/Reference/PRINCIPLES.md")
+SHOW ALL ENTITIES                                       vql -er							 :-er                                                                                    :-er
+SHOW ALL ASSET TYPES                                    vql -at							 :-at                                                                                    :-at
+SHOW ALL ASSET REFERENCES                               vql -ar							 :-ar                                                                                    :-ar
+ADD PRINCIPLE                                           vql -pr -add a Architecture "Architecture Principles"	 :-pr.add([PrincipleShortName], [PrincipleLongName], [PrincipleGuidance])                :-pr.add(a, Architecture, "Architecture Principles")
+ADD PRINCIPLE                                           vql -pr -add s Security "Security Principles"		 :-pr.add([PrincipleShortName], [PrinciplesLongName], [PrincipleGuidance])               :-pr.add(s, Security, "Security Principles")
+ADD ENTITY                                              vql -er -add u User					 :-er.add([entityShortName], [entityLongName])                                           :-er.add(u, User)
+ADD ENTITY                                              vql -er -add p Profile					 :-er.add([entityShortName], [entityLongName])                                           :-er.add(p, Profile)
+ADD ASSET TYPE                                          vql -at -add c Controller				 :-at.add([assetTypeShortName], [assetTypeLongName])"				         :-at.add(c, Controller)
+ADD ASSET REFERENCE                                     vql -ar -add uc u c "C:/Project/UserController.js"	 :-ar.add([assetRef], [entityType], [assetType], [assetPath])				 :-ar.add(uc, u, c, "C:/Project/UserController.js")
+ADD ASSET REFERENCE                                     vql -ar -add pc p c "C:/Project/ProfileController.js"    :-ar.add([assetRef], [entityType], [assetType], [assetPath])                            :-ar.add(pc, p, c, "C:/Project/ProfileController.js")
+STORE ASSET REVIEW                                      vql -st uc "Review Content"				 :[assetRef].st([Principle1ShortName], [Review Content])"                                :uc.st(a, "Review Content")
+REVIEW ALL ASSETS BY ALL PRINCIPLES                                                                              :-rv(*)										 :-rv(*)
+REVIEW ALL ASSETS BY 1 OR MORE SPECIFIED PRINCIPLES                                                              :-rv([Principle1ShortName] [Principle2ShortName])					 :-rv(a,s)
+REVIEW SPECIFIC ASSET BY ALL PRINCIPLES                                                                          :[assetRef].rv(*)									 :uc.rv(*)
+REVIEW SPECIFIC ASSET BY 1 OR MORE SPECIFIED PRINCIPLES                                                          :[assetRef].rv([Principle1ShortName] [Principle2ShortName])                             :uc.rv(a,s)
+RETRIEVE ALL REVIEWS FOR A SPECIFIC ASSET		vql uc?                                                  :[assetRef]?										 :uc?
+RETRIEVE 1 or MORE SPECIFIC REVIEWS FOR AN ASSET	vql uc?(a,s)                                             :[assetRef]?([Principle1ShortName] [Principle2ShortName])				 :uc?(a,s)
+SET AN ASSET AS AN EXEMPLAR				vql -se uc t                                             :[assetRef].se([t|f])                                                                   :uc.se(t)
+SET AN ASSET'S COMPLIANCE				vql -sc uc a H                                           :[assetRef].sc([Principle1ShortName] [H|M|L])                                           :uc.sc(a,H)
+REFACTOR ALL ASSETS BY ALL PRINCIPLES                                                                            :-rf(*)                                                                                 :-rf(*)
+REFACTOR ALL ASSETS BY 1 OR MORE SPECIFIC PRINCIPLES                                                             :-rf([Principle1ShortName] [Principle2ShortName])                                       :-rf(a,s)
+REFACTOR SPECIFIC ASSET BY ALL PRINCIPLES                                                                        :[assetRef].rf(*)                                                                       :uc.rf(*)
+REFACTOR SPECIFIC ASSET BY 1 or MORE SPECIFIC PRINCIPLES                                                         :[assetRef].rf([Principle1ShortName] [Principle2ShortName])                             :uc.rf(a,s)
+REFACTOR SPECIFIC ASSET BY 1 or MORE SPECIFIC ASSETS                                                             :[assetRef].rf([assetRef2])                                                             :up.rf(uc)
