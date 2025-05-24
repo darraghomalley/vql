@@ -487,15 +487,22 @@ The REFACTOR command family enables principled code improvement through AI-assis
 - Ensure changes maintain system integrity and functionality
 - Implement changes in logical sequence to minimize conflicts
 
-##### 4. Review Update Phase
+##### 4. Review Update Phase (MANDATORY)
+**CRITICAL**: This phase is NOT optional. Refactoring is NOT complete until reviews are updated.
+
 - For each principle that guided the refactoring:
-  - Evaluate updated code against principle criteria
-  - Determine new compliance rating based on current state
-  - Generate new detailed review text reflecting changes that includes the rating
+  - Evaluate the refactored code against principle criteria
+  - Determine new compliance rating based on post-refactoring state
+  - Generate new detailed review text that:
+    - Explicitly mentions this is a post-refactoring review
+    - Includes the new rating in the text
+    - Documents what improvements were made
   - Store the updated review with an explicit rating mention:
-    - Example: `vql -st [assetRef], [principle] "Asset now has HIGH compliance with...."`
-    - Include rating phrases like "HIGH compliance", "MEDIUM compliance", or "LOW compliance"
+    - Example: `vql -st [assetRef], [principle] "After refactoring: Asset now has HIGH compliance with...."`
+    - Include rating phrases like "After refactoring: HIGH compliance", "Post-refactoring: MEDIUM compliance", etc.
   - The rating will be auto-extracted from your review text
+
+**Important**: The refactoring workflow is incomplete without this phase. Always perform and store new reviews after refactoring.
 
   Note: You can still manually set the rating if needed:
   - Set compliance rating: `vql -sc [assetRef] [principle] [H|M|L]`
@@ -527,9 +534,10 @@ The REFACTOR command family enables principled code improvement through AI-assis
 
 - HIGH-rated reviews represent patterns to preserve and extend
 - MEDIUM-rated reviews indicate partial success; use as improvement guides
-- Only update reviews for principles that guided the refactoring
+- **MANDATORY**: Update reviews for ALL principles that guided the refactoring
 - Generate entirely new review content reflecting current implementation
 - Set new compliance ratings based on current state only
+- **CRITICAL**: Refactoring is NOT complete until reviews are updated and stored
 
 ## Understanding Principles
 

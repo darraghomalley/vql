@@ -725,10 +725,12 @@ class VQLMCPServer {
 3. Read the asset file content
 4. Analyze against all principles to identify improvements
 5. Apply refactoring changes to the file
-6. For each principle:
-   - Generate updated review reflecting the changes
-   - Store using 'vql -st ${typedArgs.asset} [principle] "[new review with rating]"'
-   - Include the new compliance level in the review text`
+6. MANDATORY: Review the refactored asset against all principles:
+   - For each principle, analyze the refactored code
+   - Generate a new review reflecting the post-refactoring state
+   - Store using 'vql -st ${typedArgs.asset} [principle] "[updated review with new rating]"'
+   - Include phrases like "After refactoring: HIGH compliance" in the review
+7. The refactoring is NOT complete until all reviews are updated`
               }]
             };
 
@@ -742,10 +744,12 @@ class VQLMCPServer {
 3. Read the asset file content
 4. Analyze against specified principles to identify improvements
 5. Apply refactoring changes to the file
-6. For each specified principle:
-   - Generate updated review reflecting the changes
-   - Store using 'vql -st ${typedArgs.asset} [principle] "[new review with rating]"'
-   - Include the new compliance level in the review text`
+6. MANDATORY: Review the refactored asset against the specified principles:
+   - For each principle in [${(typedArgs.principles || []).join(', ')}], analyze the refactored code
+   - Generate a new review reflecting the post-refactoring state
+   - Store using 'vql -st ${typedArgs.asset} [principle] "[updated review with new rating]"'
+   - Include phrases like "After refactoring: HIGH compliance" in the review
+7. The refactoring is NOT complete until all specified principle reviews are updated`
               }]
             };
 
@@ -759,7 +763,12 @@ class VQLMCPServer {
 3. Get reviews for reference asset to understand exemplary patterns
 4. Identify patterns in reference asset that can improve target asset
 5. Apply similar patterns to target asset
-6. Generate and store updated reviews for improved principles`
+6. MANDATORY: Review the refactored asset against all affected principles:
+   - Identify which principles were addressed by the refactoring
+   - For each affected principle, analyze the refactored code
+   - Store using 'vql -st ${typedArgs.asset} [principle] "[updated review with new rating]"'
+   - Include phrases like "After refactoring to match ${typedArgs.referenceAsset}: HIGH compliance"
+7. The refactoring is NOT complete until reviews are updated`
               }]
             };
 
@@ -801,9 +810,14 @@ class VQLMCPServer {
 2. Run 'vql -pr' to get all principles
 3. For each asset:
    - Read the file
-   - Analyze against all principles
-   - Apply improvements
-   - Store updated reviews for each principle`
+   - Analyze against all principles to identify improvements
+   - Apply refactoring changes to improve compliance
+4. MANDATORY: After refactoring each asset, review it:
+   - For each principle, analyze the refactored code
+   - Generate new reviews reflecting post-refactoring state
+   - Store using 'vql -st [asset] [principle] "[updated review]"'
+   - Include phrases like "After refactoring: HIGH compliance"
+5. The refactoring process is NOT complete until all reviews are updated`
               }]
             };
 
@@ -816,9 +830,14 @@ class VQLMCPServer {
 2. Get principle definitions for: ${(typedArgs.principles || []).join(', ')}
 3. For each asset:
    - Read the file
-   - Analyze against specified principles
-   - Apply improvements
-   - Store updated reviews for each specified principle`
+   - Analyze against specified principles to identify improvements
+   - Apply refactoring changes to improve compliance
+4. MANDATORY: After refactoring each asset, review it:
+   - For each principle in [${(typedArgs.principles || []).join(', ')}], analyze the refactored code
+   - Generate new reviews reflecting post-refactoring state
+   - Store using 'vql -st [asset] [principle] "[updated review]"'
+   - Include phrases like "After refactoring: HIGH compliance"
+5. The refactoring process is NOT complete until all specified principle reviews are updated`
               }]
             };
 
