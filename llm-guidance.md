@@ -40,6 +40,58 @@ VQL is now available as a Model Context Protocol (MCP) server, providing structu
    ```
    You should see the VQL server listed.
 
+### First-Time MCP Setup in New Projects
+
+When starting in a new project where VQL MCP location is unknown:
+
+1. **Check common locations for VQL**:
+   ```bash
+   # Check if VQL is in a sibling directory
+   ls ../vql/mcp-server/dist/index.js 2>/dev/null && echo "Found in sibling directory"
+   
+   # Check if VQL is in parent directory
+   ls ../../vql/mcp-server/dist/index.js 2>/dev/null && echo "Found in parent directory"
+   
+   # Check if vql-mcp is globally installed
+   which vql-mcp 2>/dev/null && echo "Found globally installed"
+   ```
+
+2. **If VQL is found, add it based on location**:
+   ```bash
+   # For sibling directory
+   claude mcp add vql node ../vql/mcp-server/dist/index.js
+   
+   # For parent directory
+   claude mcp add vql node ../../vql/mcp-server/dist/index.js
+   
+   # For global installation
+   claude mcp add vql vql-mcp
+   ```
+
+3. **If VQL is not found automatically**:
+   - Ask the user: "Where is your VQL installation located?"
+   - Or ask: "Would you like to proceed with CLI mode instead? Use :cli"
+   - If user provides path: `claude mcp add vql node /path/to/vql/mcp-server/dist/index.js`
+
+4. **Verify the MCP server is working**:
+   ```bash
+   # Try listing principles as a test
+   # The AI should attempt to use the list_principles() tool
+   ```
+   If this fails, suggest: "MCP server setup failed. Switching to CLI mode with :cli"
+
+5. **Building VQL MCP from source** (if needed):
+   If the user has VQL source but MCP isn't built:
+   ```bash
+   cd /path/to/vql/mcp-server
+   npm install
+   npm run build
+   # Then add it
+   claude mcp add vql node ./dist/index.js
+   ```
+
+**Important**: Always default to MCP mode first, but be ready to fall back to CLI mode if MCP setup fails.
+
 ### Using VQL via MCP Tools
 
 When VQL MCP server is available, you'll have access to structured tools instead of parsing command strings:
