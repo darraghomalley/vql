@@ -7,9 +7,10 @@ VQL is a tool built in Rust for managing software quality through principle-base
 VQL is built on a Rust-based CLI architecture with the following components:
 
 - **Rust CLI Application**: A command-line interface for executing VQL commands directly
+- **MCP Server** (TypeScript): Model Context Protocol server that enables AI assistants to use VQL through structured tools
 - **VQL Folder Structure**: Creates a `VQL` directory in your project to store configuration and data
 - **JSON Object Store**: Local JSON-based storage that maintains principles, entities, asset types, and reviews
-- **LLM Guidance Integration**: Special commands and syntax for AI assistant (Claude Code) integration
+- **LLM Guidance Integration**: Special commands and syntax for AI assistant integration
 
 The system manages several key data types:
 - **Principles**: Quality criteria for evaluating code (architecture, security, performance, scalability)
@@ -18,7 +19,7 @@ The system manages several key data types:
 - **Asset References**: Specific files being evaluated, linked to entities and asset types
 - **Asset Reviews**: Quality evaluations of specific assets against principles
 
-This architecture enables both direct CLI usage and powerful AI-assisted workflows for code review and refactoring.
+This architecture enables both direct CLI usage and powerful AI-assisted workflows for code review and refactoring through the MCP server.
 
 ## Features
 
@@ -32,16 +33,47 @@ This architecture enables both direct CLI usage and powerful AI-assisted workflo
 
 ## Installation
 
+### VQL CLI
+
 ```bash
-# Clone the repository
+# Install from crates.io (when published)
+cargo install vibe-ql
+
+# Or build from source
 git clone https://github.com/your-username/vql.git
 cd vql
-
-# Build the project
 cargo build --release
-
-# Optional: Add to your PATH
 cp target/release/vql /usr/local/bin/
+```
+
+### MCP Server (for AI assistants)
+
+```bash
+# Install from npm (when published)
+npm install -g @vibe-ql/mcp-server
+
+# Or from source
+cd mcp-server
+npm install
+npm run build
+npm link
+```
+
+#### Configure Claude Desktop
+
+Add to your Claude Desktop configuration:
+
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "vql": {
+      "command": "vql-mcp"
+    }
+  }
+}
 ```
 
 ## CLI Commands
@@ -127,12 +159,15 @@ AI assistants can also execute special "virtual" workflows that combine multiple
 
 ## Project Structure
 
-- `/src` - Source code for the VQL application
+- `/src` - Source code for the VQL Rust CLI application
   - `/bin` - Binary executables and utilities
   - `/commands` - Command handlers for VQL operations 
   - `/models` - Data models for VQL (assets, principles, etc.)
   - `/utils` - Utility functions and helpers
   - `/tests` - Test suite for VQL functionality
+- `/mcp-server` - TypeScript MCP server implementation
+  - `/src` - MCP server source code
+  - `/dist` - Compiled JavaScript output
 
 ## Principles
 
