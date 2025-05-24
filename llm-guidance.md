@@ -559,16 +559,35 @@ Example principles.md file:
 
 ## VQL Mode and MCP Integration
 
+### Interface Mode Selection
+
+VQL supports two interface modes that can be explicitly selected:
+
+- **`:-mcp`** - Use MCP server interface (DEFAULT)
+  - All VQL commands will use MCP tools
+  - Requires VQL MCP server to be configured
+  - Provides structured, type-safe operations
+  
+- **`:-cli`** - Use CLI interface
+  - All VQL commands will use command-line interface
+  - Parses VQL command syntax and executes via shell
+  - Fallback when MCP server is unavailable
+
+**Default Behavior**: 
+- Sessions start in MCP mode (`:-mcp`)
+- If MCP tools fail, inform user and suggest `:-cli`
+- Mode persists until explicitly changed
+
 ### VQL Mode Behavior
 
-When VQL MCP server is available:
+When in MCP mode (`:-mcp`):
 - **VQL mode is ON by default** when the session starts
 - The MCP server maintains VQL mode state internally
 - Use `get_vql_mode()` tool to check current mode
 - Use `enable_vql_mode()` or `disable_vql_mode()` tools to change mode
 - When VQL mode is ON, include LLM indicators at the end of responses
 
-When using CLI fallback:
+When in CLI mode (`:-cli`):
 - VQL mode state must be tracked by the LLM session
 - Set to ON by default when reviewing CLAUDE.md or llm-guidance.md
 - Use `:vql on` and `:vql off` commands to change mode
@@ -576,14 +595,40 @@ When using CLI fallback:
 
 ### Choosing Between MCP Tools and CLI Commands
 
-1. **Always check for MCP server first**: Run `claude mcp list` or attempt to use a VQL tool
-2. **If MCP is available**: Use the structured tools exclusively
-3. **If MCP is not available**: Fall back to CLI command parsing and execution
-4. **Never mix approaches**: Use either MCP tools OR CLI commands, not both
+1. **Session starts in MCP mode** by default
+2. **User can explicitly switch** using `:-mcp` or `:-cli` commands
+3. **Mode persists** until explicitly changed
+4. **Consistent interface** - all commands use the selected mode
+
+### Mode Switching Examples
+
+**Starting a session (default MCP mode):**
+```
+User: :vql
+Assistant: [Attempts to use VQL MCP tools]
+```
+
+**Switching to CLI mode:**
+```
+User: :cli
+Assistant: Switched to CLI interface mode. VQL commands will now use command-line interface.
+
+User: :vql -pr
+Assistant: [Executes `vql -pr` command via shell]
+```
+
+**Switching back to MCP mode:**
+```
+User: :mcp
+Assistant: Switched to MCP interface mode. VQL commands will now use MCP tools.
+
+User: Show all principles
+Assistant: [Uses list_principles() MCP tool]
+```
 
 ### MCP Tool Usage Examples
 
-Instead of parsing `:uc.st(a, "Review content")`, use:
+In MCP mode, instead of parsing `:uc.st(a, "Review content")`, use:
 ```
 store_review(asset="uc", principle="a", review="Review content")
 ```
@@ -600,11 +645,13 @@ IMPORTANT: Human Commands must be recognized and processed in any case (upper or
 - :li: show LLM-Indicators
 - :dok: debt ok
 - :hc: show Human-Commands
+- :mcp: switch to MCP interface mode (use MCP tools for all VQL operations)
+- :cli: switch to CLI interface mode (use command-line parsing for all VQL operations)
 - :Review: complete ARCH SEC PERF review of ALL assets in Asset-References and update their LastReview timestamps (never changes Exemplar status)
 - :tok: tactical ok
 - :tnc: thoughts only, no code
-- :vql off: turn vql off (use `disable_vql_mode()` if MCP available)
-- :vql on: turn vql on (use `enable_vql_mode()` if MCP available)
+- :vql off: turn vql off (use `disable_vql_mode()` if in MCP mode)
+- :vql on: turn vql on (use `enable_vql_mode()` if in MCP mode)
 - :vql: show complete list of VQL commands
 - :why: explain justification for LLM's last LI indicators
 - :wmc: a prefix meaning "with minimal changes"; this will be followed by a task that should be performed incisively, with no more proaction than necessary
