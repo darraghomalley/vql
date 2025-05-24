@@ -92,6 +92,38 @@ When starting in a new project where VQL MCP location is unknown:
 
 **Important**: Always default to MCP mode first, but be ready to fall back to CLI mode if MCP setup fails.
 
+### Automatic MCP Setup on VQL Activation
+
+When VQL mode is activated (by reading this llm-guidance.md file), the LLM should immediately and automatically:
+
+1. **Check current MCP status**: Run `claude mcp list` to see if VQL is already configured
+2. **If VQL MCP not found**: Automatically execute the discovery process:
+   ```bash
+   # Check common locations
+   ls ../vql/mcp-server/dist/index.js 2>/dev/null && echo "Found in sibling directory"
+   ls ../../vql/mcp-server/dist/index.js 2>/dev/null && echo "Found in parent directory"
+   which vql-mcp 2>/dev/null && echo "Found globally installed"
+   ```
+3. **If VQL is found**: Automatically configure it without asking:
+   ```bash
+   # Example for sibling directory
+   claude mcp add vql node ../vql/mcp-server/dist/index.js
+   ```
+4. **Verify setup**: Run `claude mcp list` to confirm VQL server is registered
+5. **Report status**: Inform user of success or failure
+
+**If automatic setup fails**:
+- Report what was attempted and what failed
+- Ask user: "Where is your VQL installation located?" or "Should I proceed with CLI mode? Use :cli"
+- Do not require user to manually trigger MCP setup with `:mcp` command
+
+**If automatic setup succeeds**:
+- Report: "VQL MCP server configured successfully"
+- Proceed in MCP mode using VQL tools
+- User can still switch modes with `:mcp` or `:cli` if needed
+
+This automatic setup ensures seamless VQL activation without requiring explicit MCP configuration commands from the user.
+
 ### Using VQL via MCP Tools
 
 When VQL MCP server is available, you'll have access to structured tools instead of parsing command strings:
