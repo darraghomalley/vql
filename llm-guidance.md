@@ -2,6 +2,66 @@
 
 This document provides comprehensive guidance for understanding and using VQL (Vibe Query Language) commands in LLM-assisted software development sessions.
 
+## MCP Server Integration (Recommended)
+
+VQL is now available as a Model Context Protocol (MCP) server, providing structured tool access for AI assistants. This is the recommended way to use VQL in Claude Code sessions.
+
+### Setting Up VQL MCP Server
+
+1. **Check if VQL MCP is available**:
+   ```bash
+   claude mcp list
+   ```
+   Look for a server named `vql` or similar.
+
+2. **If not available, add the VQL MCP server**:
+   
+   For a published npm package:
+   ```bash
+   # If @vibe-ql/mcp-server is installed globally
+   claude mcp add vql vql-mcp
+   ```
+   
+   For a local development server:
+   ```bash
+   # From the VQL project directory
+   claude mcp add vql node ./mcp-server/dist/index.js
+   ```
+   
+   For a project-relative installation:
+   ```bash
+   # If VQL is in a sibling directory
+   claude mcp add vql node ../vql/mcp-server/dist/index.js
+   ```
+
+3. **Verify MCP server is active**:
+   ```bash
+   claude mcp list
+   ```
+   You should see the VQL server listed.
+
+### Using VQL via MCP Tools
+
+When VQL MCP server is available, you'll have access to structured tools instead of parsing command strings:
+
+- `list_principles()` - Show all principles
+- `add_principle(short, long, guidance)` - Add a new principle
+- `list_assets()` - Show all assets
+- `store_review(asset, principle, review)` - Store a review
+- `review_asset_all_principles(asset)` - AI workflow to review an asset
+- `refactor_asset_principles(asset, principles)` - AI workflow to refactor
+
+**Benefits of MCP over CLI commands**:
+- Type-safe parameters
+- Structured responses
+- Better error handling
+- No command string parsing needed
+- Direct integration with Claude's tool system
+
+### Fallback to CLI Commands
+
+If the MCP server is not available, you can still use VQL through CLI commands as documented below. However, always prefer the MCP server when available for a better experience.
+
 ## Command Formats
 
 VQL supports two primary command formats:
@@ -497,6 +557,42 @@ Example principles.md file:
 ...
 ```
 
+## VQL Mode and MCP Integration
+
+### VQL Mode Behavior
+
+When VQL MCP server is available:
+- **VQL mode is ON by default** when the session starts
+- The MCP server maintains VQL mode state internally
+- Use `get_vql_mode()` tool to check current mode
+- Use `enable_vql_mode()` or `disable_vql_mode()` tools to change mode
+- When VQL mode is ON, include LLM indicators at the end of responses
+
+When using CLI fallback:
+- VQL mode state must be tracked by the LLM session
+- Set to ON by default when reviewing CLAUDE.md or llm-guidance.md
+- Use `:vql on` and `:vql off` commands to change mode
+- Mode state persists for the session duration
+
+### Choosing Between MCP Tools and CLI Commands
+
+1. **Always check for MCP server first**: Run `claude mcp list` or attempt to use a VQL tool
+2. **If MCP is available**: Use the structured tools exclusively
+3. **If MCP is not available**: Fall back to CLI command parsing and execution
+4. **Never mix approaches**: Use either MCP tools OR CLI commands, not both
+
+### MCP Tool Usage Examples
+
+Instead of parsing `:uc.st(a, "Review content")`, use:
+```
+store_review(asset="uc", principle="a", review="Review content")
+```
+
+Instead of complex review workflow parsing, use:
+```
+review_asset_all_principles(asset="uc")
+```
+
 ## Human Commands (:hc)
 
 IMPORTANT: Human Commands must be recognized and processed in any case (upper or lowercase).
@@ -507,8 +603,8 @@ IMPORTANT: Human Commands must be recognized and processed in any case (upper or
 - :Review: complete ARCH SEC PERF review of ALL assets in Asset-References and update their LastReview timestamps (never changes Exemplar status)
 - :tok: tactical ok
 - :tnc: thoughts only, no code
-- :vql off: turn vql off
-- :vql on: turn vql on (set to on by default on session start when the LLM reviews CLAUDE.md)
+- :vql off: turn vql off (use `disable_vql_mode()` if MCP available)
+- :vql on: turn vql on (use `enable_vql_mode()` if MCP available)
 - :vql: show complete list of VQL commands
 - :why: explain justification for LLM's last LI indicators
 - :wmc: a prefix meaning "with minimal changes"; this will be followed by a task that should be performed incisively, with no more proaction than necessary
