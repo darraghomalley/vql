@@ -384,8 +384,10 @@
             <ul style="margin: 0; padding-left: 20px; line-height: 1.5;">
                 <li><strong>Clearer Syntax:</strong> <code>-pr</code> = all principles (replaces <code>*</code>)</li>
                 <li><strong>Reference Refactoring:</strong> <code>:pc.rf(-pr, uc)</code> or <code>:tm.rf(a,s,uc,pc)</code></li>
-                <li><strong>Unified Namespace:</strong> Unique names across all types + referential integrity</li>
-                <li><strong>Smart Cascading:</strong> Automatic cleanup with <code>:rn()</code> and <code>:dl()</code></li>
+                <li><strong>Unified Namespace:</strong> Unique names enable mixing principles & assets: <code>:tm.rf(a,s,uc,pc)</code></li>
+                <li><strong>Data Integrity:</strong> Referential integrity + smart cascading for safe operations</li>
+                <li><strong>Lifecycle Management:</strong> Rename with <code>:rn()</code>, delete with cascade rules <code>:dl()</code></li>
+                <li><strong>Enhanced Workflows:</strong> Post-refactor reviews mandatory, mixed principle lists supported</li>
             </ul>
         </div>
 
@@ -394,8 +396,11 @@
             <p style="font-size: 1.05em; margin-bottom: 15px; color: #2c3e50;">
                 <strong>VQL (Vibe Query Language)</strong> is an open source framework providing quality guardrails for AI-assisted coding. It transforms verbose instructions into concise commands, managing principles (quality criteria), entities (business objects), asset types (code categories), and reviews in a persistent knowledge base that survives context resets.
             </p>
+            <p style="font-size: 0.95em; margin-bottom: 10px; color: #555;">
+                Works seamlessly via CLI or MCP server integration. Built with safety in mind through <strong>unified namespace</strong> (unique names across all types) and <strong>referential integrity</strong> (dependencies must exist before use).
+            </p>
             <p style="font-size: 0.95em; margin: 0; color: #555;">
-                Works via CLI or MCP server integration. Enforces unified namespace (unique names across all types), referential integrity, and smart cascading for deletions.
+                Supports complete lifecycle management with <code>:rn()</code> for renaming and <code>:dl()</code> for deletion with smart cascading—automatically cleaning up dependent assets while protecting your review history.
             </p>
         </div>
 
@@ -447,7 +452,7 @@
             
             <!-- Card 3: Create User Entity Reference -->
             <div class="command-card">
-                <div class="card-header">Create User Entity Reference</div>
+                <div class="card-header">Create Entity Reference</div>
                 <div class="card-content">
                     <div class="card-row">
                         <div class="card-label">Command:</div>
@@ -466,7 +471,7 @@
             
             <!-- Card 4: Create Profile Entity Reference -->
             <div class="command-card">
-                <div class="card-header">Create Profile Entity Reference</div>
+                <div class="card-header">Create Another Entity Reference</div>
                 <div class="card-content">
                     <div class="card-row">
                         <div class="card-label">Command:</div>
@@ -483,7 +488,26 @@
                 </div>
             </div>
             
-            <!-- Card 5: Define Controller Asset Type -->
+            <!-- Card 5: Create Team Entity Reference -->
+            <div class="command-card">
+                <div class="card-header">Create Team Entity Reference</div>
+                <div class="card-content">
+                    <div class="card-row">
+                        <div class="card-label">Command:</div>
+                        <div class="card-value"><code>:-er.add(t, Team)</code></div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">Action:</div>
+                        <div class="card-value">Creates Team entity with 't' identifier</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">CLI Command:</div>
+                        <div class="card-value"><code>vql -er -add t Team</code></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card 6: Define Controller Asset Type -->
             <div class="command-card">
                 <div class="card-header">Define Controller Asset Type</div>
                 <div class="card-content">
@@ -502,9 +526,28 @@
                 </div>
             </div>
             
-            <!-- Card 6: Register UserController Asset Reference -->
+            <!-- Card 7: Define Model Asset Type -->
             <div class="command-card">
-                <div class="card-header">Register UserController Asset Reference</div>
+                <div class="card-header">Define Model Asset Type</div>
+                <div class="card-content">
+                    <div class="card-row">
+                        <div class="card-label">Command:</div>
+                        <div class="card-value"><code>:-at.add(m, Model)</code></div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">Action:</div>
+                        <div class="card-value">Registers Model type with 'm' identifier</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">CLI Command:</div>
+                        <div class="card-value"><code>vql -at -add m Model</code></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card 8: Register UserController Asset Reference -->
+            <div class="command-card">
+                <div class="card-header">Register Controller Asset</div>
                 <div class="card-content">
                     <div class="card-row">
                         <div class="card-label">Command:</div>
@@ -521,9 +564,9 @@
                 </div>
             </div>
             
-            <!-- Card 7: Register ProfileController Asset Reference -->
+            <!-- Card 9: Register ProfileController Asset Reference -->
             <div class="command-card">
-                <div class="card-header">Register ProfileController Asset Reference</div>
+                <div class="card-header">Register Another Controller Asset</div>
                 <div class="card-content">
                     <div class="card-row">
                         <div class="card-label">Command:</div>
@@ -540,9 +583,28 @@
                 </div>
             </div>
             
-            <!-- Card 8: Perform Comprehensive Asset Review -->
+            <!-- Card 10: Register TeamModel Asset Reference -->
             <div class="command-card">
-                <div class="card-header">Perform Comprehensive Asset Review</div>
+                <div class="card-header">Register Model Asset</div>
+                <div class="card-content">
+                    <div class="card-row">
+                        <div class="card-label">Command:</div>
+                        <div class="card-value"><code>:-ar.add(tm, t, m, "C:/App/TeamModel.js")</code></div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">Action:</div>
+                        <div class="card-value">Registers TeamModel as 'tm' (Team entity, Model type)</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">CLI Command:</div>
+                        <div class="card-value"><code>vql -ar -add tm t m "C:/App/TeamModel.js"</code></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card 11: Review Asset Against Principle -->
+            <div class="command-card">
+                <div class="card-header">Review Asset Against Principle</div>
                 <div class="card-content">
                     <div class="card-row">
                         <div class="card-label">Command:</div>
@@ -559,7 +621,7 @@
                 </div>
             </div>
             
-            <!-- Card 9: Mark Asset as Exemplar -->
+            <!-- Card 12: Mark Asset as Exemplar -->
             <div class="command-card">
                 <div class="card-header">Mark Asset as Exemplar</div>
                 <div class="card-content">
@@ -578,9 +640,9 @@
                 </div>
             </div>
             
-            <!-- Card 10: Execute Asset Refactoring Workflow -->
+            <!-- Card 13: Refactor Asset with Reference -->
             <div class="command-card">
-                <div class="card-header">Execute Asset Refactoring Workflow</div>
+                <div class="card-header">Refactor Asset with Reference</div>
                 <div class="card-content">
                     <div class="card-row">
                         <div class="card-label">Command:</div>
@@ -588,11 +650,49 @@
                     </div>
                     <div class="card-row">
                         <div class="card-label">Action:</div>
-                        <div class="card-value">Refactors ProfileController using all principles with UserController as reference</div>
+                        <div class="card-value">Refactors ProfileController using all principles with UserController as reference, then mandates review</div>
                     </div>
                     <div class="card-row">
                         <div class="card-label">CLI Command:</div>
                         <div class="card-value"><code>vql -st pc a "The ProfileController now demonstrates excellent separation of concerns with clean dependency injection and proper error handling. HIGH compliance"</code></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card 14: Review Asset Against Multiple Principles -->
+            <div class="command-card">
+                <div class="card-header">Review Asset Against Multiple Principles</div>
+                <div class="card-content">
+                    <div class="card-row">
+                        <div class="card-label">Command:</div>
+                        <div class="card-value"><code>:tm.rv(a,s)</code></div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">Action:</div>
+                        <div class="card-value">Reviews TeamModel against architecture and security principles (unified namespace enables mixing)</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">CLI Command:</div>
+                        <div class="card-value"><code>vql -st tm a "Clean domain model with proper encapsulation. HIGH"</code> then <code>vql -st tm s "Implements secure data validation. HIGH"</code></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card 15: Refactor with Mixed Parameters -->
+            <div class="command-card">
+                <div class="card-header">Refactor with Mixed Parameters</div>
+                <div class="card-content">
+                    <div class="card-row">
+                        <div class="card-label">Command:</div>
+                        <div class="card-value"><code>:tm.rf(a,s,uc,pc)</code></div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">Action:</div>
+                        <div class="card-value">Refactors TeamModel for architecture & security using both UserController and ProfileController as references</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">CLI Command:</div>
+                        <div class="card-value"><code>vql -rf tm a,s uc,pc</code> (unified namespace distinguishes principles from assets)</div>
                     </div>
                 </div>
             </div>
@@ -614,14 +714,14 @@
             <p><strong>Vibe Coder: </strong>seeing as vql enables you to retrieve valuable context from the machine via the cli, to what extent does it speed up our coding efforts?</p>
         </div>
         <div class="chat-bubble ai-response">
-            <p><strong>Claude: </strong>VQL significantly speeds up coding by providing immediate access to structured knowledge. It enables faster onboarding through exemplars, consistent quality via pre-analysed ratings, targeted improvements with compliance metrics, persistent knowledge storage, and pattern replication. Without VQL, we'd repeatedly analyse code patterns and recreate decisions, but with it we skip repetitive analysis and focus on implementation.</p>
+            <p><strong>Claude: </strong>VQL significantly speeds up coding by providing immediate access to structured knowledge. It enables faster onboarding through exemplars, consistent quality via pre-analysed ratings, targeted improvements with compliance metrics, persistent knowledge storage, and pattern replication. Enhanced review/refactor workflows support mixed principle lists and sophisticated pattern matching. Without VQL, we'd repeatedly analyse code patterns and recreate decisions, but with it we skip repetitive analysis and focus on implementation.</p>
         </div>
 
         <div class="chat-bubble user-question">
             <p><strong>Vibe Coder: </strong>to what extent does vql help development across several broken llm / claude context windows?</p>
         </div>
         <div class="chat-bubble ai-response">
-            <p><strong>Claude: </strong>VQL excels at preserving context across broken sessions through persistent storage of reviews and decisions, maintaining a queryable knowledge base, enabling quick architectural recovery, standardizing terminology, identifying exemplars, and creating shared memory between conversations. This eliminates the "cold start" problem when context windows expire by querying VQL storage instead of reanalyzing code patterns.</p>
+            <p><strong>Claude: </strong>VQL excels at preserving context across broken sessions through persistent storage of reviews and decisions, maintaining a queryable knowledge base, enabling quick architectural recovery, standardizing terminology, identifying exemplars, and creating shared memory between conversations. Data integrity features ensure consistency across sessions with referential integrity, cascade rules, and unified namespace enforcement. This eliminates the "cold start" problem when context windows expire by querying VQL storage instead of reanalyzing code patterns.</p>
         </div>
 
         <div class="chat-bubble user-question">

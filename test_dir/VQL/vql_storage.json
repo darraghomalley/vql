@@ -1,60 +1,11 @@
 {
   "version": "1.0.0",
   "created": "2025-05-21T09:03:24Z",
-  "last_modified": "2025-05-25T09:49:14Z",
+  "last_modified": "2025-05-26T16:43:11Z",
   "commands": {
-    "pr": {
-      "name": "pr",
-      "description": "Principle - Manages principles for reviewing assets",
-      "last_modified": "2025-05-21T09:03:24Z",
-      "original_name": null,
-      "built_in": true
-    },
-    "st": {
-      "name": "st",
-      "description": "Store - Stores a review for an asset",
-      "last_modified": "2025-05-21T09:03:24Z",
-      "original_name": null,
-      "built_in": true
-    },
     "rv": {
       "name": "rv",
       "description": "Review - AI-assisted review of assets (LLM only)",
-      "last_modified": "2025-05-21T09:03:24Z",
-      "original_name": null,
-      "built_in": true
-    },
-    "at": {
-      "name": "at",
-      "description": "Asset Type - Manages asset types",
-      "last_modified": "2025-05-21T09:03:24Z",
-      "original_name": null,
-      "built_in": true
-    },
-    "er": {
-      "name": "er",
-      "description": "Entity Register - Manages entity definitions",
-      "last_modified": "2025-05-21T09:03:24Z",
-      "original_name": null,
-      "built_in": true
-    },
-    "se": {
-      "name": "se",
-      "description": "Set Exemplar - Sets exemplar status for an asset",
-      "last_modified": "2025-05-21T09:03:24Z",
-      "original_name": null,
-      "built_in": true
-    },
-    "sc": {
-      "name": "sc",
-      "description": "Set Compliance - Sets compliance rating for an asset",
-      "last_modified": "2025-05-21T09:03:24Z",
-      "original_name": null,
-      "built_in": true
-    },
-    "rf": {
-      "name": "rf",
-      "description": "Refactor - AI-assisted refactoring of assets (LLM only)",
       "last_modified": "2025-05-21T09:03:24Z",
       "original_name": null,
       "built_in": true
@@ -66,44 +17,104 @@
       "original_name": null,
       "built_in": true
     },
+    "rf": {
+      "name": "rf",
+      "description": "Refactor - AI-assisted refactoring of assets (LLM only)",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
+    },
+    "er": {
+      "name": "er",
+      "description": "Entity Register - Manages entity definitions",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
+    },
+    "st": {
+      "name": "st",
+      "description": "Store - Stores a review for an asset",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
+    },
     "setup": {
       "name": "setup",
       "description": "Creates VQL directory in current location",
       "last_modified": "2025-05-21T09:03:24Z",
       "original_name": null,
       "built_in": true
+    },
+    "sc": {
+      "name": "sc",
+      "description": "Set Compliance - Sets compliance rating for an asset",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
+    },
+    "se": {
+      "name": "se",
+      "description": "Set Exemplar - Sets exemplar status for an asset",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
+    },
+    "pr": {
+      "name": "pr",
+      "description": "Principle - Manages principles for reviewing assets",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
+    },
+    "at": {
+      "name": "at",
+      "description": "Asset Type - Manages asset types",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
     }
   },
   "asset_types": {
-    "c": {
-      "short_name": "c",
-      "description": "Controller",
-      "last_modified": "2025-05-25T09:46:43Z"
-    },
     "mdl": {
       "short_name": "mdl",
       "description": "Model",
       "last_modified": "2025-05-25T07:22:27Z"
+    },
+    "c": {
+      "short_name": "c",
+      "description": "Controller",
+      "last_modified": "2025-05-25T09:46:43Z"
     }
   },
   "entities": {
+    "z": {
+      "short_name": "z",
+      "description": "Zone",
+      "last_modified": "2025-05-25T06:37:02Z"
+    },
     "usr": {
       "short_name": "usr",
       "description": "User",
       "last_modified": "2025-05-25T09:46:40Z"
     },
-    "z": {
-      "short_name": "z",
-      "description": "Zone",
-      "last_modified": "2025-05-25T06:37:02Z"
+    "newent": {
+      "short_name": "newent",
+      "description": "New",
+      "last_modified": "2025-05-26T16:43:11Z"
     }
   },
   "principles": {
-    "p": {
-      "short_name": "p",
-      "long_name": "Performance",
-      "guidance": "Performance evaluation guidelines",
-      "last_modified": "2025-05-21T09:03:24Z"
+    "a": {
+      "short_name": "a",
+      "long_name": "Architecture",
+      "guidance": "Architecture",
+      "last_modified": "2025-05-25T09:46:33Z"
+    },
+    "t": {
+      "short_name": "t",
+      "long_name": "Testing",
+      "guidance": "New",
+      "last_modified": "2025-05-26T12:22:03Z"
     },
     "rel": {
       "short_name": "rel",
@@ -111,11 +122,11 @@
       "guidance": "System reliability and uptime",
       "last_modified": "2025-05-25T07:44:41Z"
     },
-    "a": {
-      "short_name": "a",
-      "long_name": "Architecture",
-      "guidance": "Architecture",
-      "last_modified": "2025-05-25T09:46:33Z"
+    "p": {
+      "short_name": "p",
+      "long_name": "Performance",
+      "guidance": "Performance evaluation guidelines",
+      "last_modified": "2025-05-21T09:03:24Z"
     },
     "s": {
       "short_name": "s",
@@ -131,6 +142,29 @@
     }
   },
   "asset_references": {
+    "userctrl": {
+      "short_name": "userctrl",
+      "entity": "usr",
+      "asset_type": "c",
+      "path": "UserController.js",
+      "last_modified": "2025-05-26T12:19:21Z",
+      "exemplar": true,
+      "principle_reviews": {
+        "a": {
+          "rating": "H",
+          "analysis": "Test review content with HIGH compliance",
+          "last_modified": "2025-05-26T12:19:21Z"
+        }
+      },
+      "arch_rating": "H",
+      "sec_rating": null,
+      "perf_rating": null,
+      "ui_rating": null,
+      "arch_analysis": "Test review content with HIGH compliance",
+      "sec_analysis": null,
+      "perf_analysis": null,
+      "ui_analysis": null
+    },
     "xem": {
       "short_name": "xem",
       "entity": "x",
@@ -144,29 +178,6 @@
       "perf_rating": null,
       "ui_rating": null,
       "arch_analysis": null,
-      "sec_analysis": null,
-      "perf_analysis": null,
-      "ui_analysis": null
-    },
-    "userctrl": {
-      "short_name": "userctrl",
-      "entity": "usr",
-      "asset_type": "c",
-      "path": "UserController.js",
-      "last_modified": "2025-05-25T09:49:14Z",
-      "exemplar": true,
-      "principle_reviews": {
-        "a": {
-          "rating": "H",
-          "analysis": "",
-          "last_modified": "2025-05-25T09:48:31Z"
-        }
-      },
-      "arch_rating": "H",
-      "sec_rating": null,
-      "perf_rating": null,
-      "ui_rating": null,
-      "arch_analysis": "",
       "sec_analysis": null,
       "perf_analysis": null,
       "ui_analysis": null
