@@ -1,18 +1,11 @@
 {
   "version": "1.0.0",
   "created": "2025-05-21T09:03:24Z",
-  "last_modified": "2025-05-21T09:03:24Z",
+  "last_modified": "2025-05-25T09:49:14Z",
   "commands": {
-    "er": {
-      "name": "er",
-      "description": "Entity Register - Manages entity definitions",
-      "last_modified": "2025-05-21T09:03:24Z",
-      "original_name": null,
-      "built_in": true
-    },
-    "ar": {
-      "name": "ar",
-      "description": "Asset Register - Manages asset references",
+    "pr": {
+      "name": "pr",
+      "description": "Principle - Manages principles for reviewing assets",
       "last_modified": "2025-05-21T09:03:24Z",
       "original_name": null,
       "built_in": true
@@ -24,9 +17,9 @@
       "original_name": null,
       "built_in": true
     },
-    "se": {
-      "name": "se",
-      "description": "Set Exemplar - Sets exemplar status for an asset",
+    "rv": {
+      "name": "rv",
+      "description": "Review - AI-assisted review of assets (LLM only)",
       "last_modified": "2025-05-21T09:03:24Z",
       "original_name": null,
       "built_in": true
@@ -38,6 +31,20 @@
       "original_name": null,
       "built_in": true
     },
+    "er": {
+      "name": "er",
+      "description": "Entity Register - Manages entity definitions",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
+    },
+    "se": {
+      "name": "se",
+      "description": "Set Exemplar - Sets exemplar status for an asset",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
+    },
     "sc": {
       "name": "sc",
       "description": "Set Compliance - Sets compliance rating for an asset",
@@ -45,23 +52,16 @@
       "original_name": null,
       "built_in": true
     },
-    "rv": {
-      "name": "rv",
-      "description": "Review - AI-assisted review of assets (LLM only)",
-      "last_modified": "2025-05-21T09:03:24Z",
-      "original_name": null,
-      "built_in": true
-    },
-    "pr": {
-      "name": "pr",
-      "description": "Principle - Manages principles for reviewing assets",
-      "last_modified": "2025-05-21T09:03:24Z",
-      "original_name": null,
-      "built_in": true
-    },
     "rf": {
       "name": "rf",
       "description": "Refactor - AI-assisted refactoring of assets (LLM only)",
+      "last_modified": "2025-05-21T09:03:24Z",
+      "original_name": null,
+      "built_in": true
+    },
+    "ar": {
+      "name": "ar",
+      "description": "Asset Register - Manages asset references",
       "last_modified": "2025-05-21T09:03:24Z",
       "original_name": null,
       "built_in": true
@@ -74,33 +74,102 @@
       "built_in": true
     }
   },
-  "asset_types": {},
-  "entities": {},
+  "asset_types": {
+    "c": {
+      "short_name": "c",
+      "description": "Controller",
+      "last_modified": "2025-05-25T09:46:43Z"
+    },
+    "mdl": {
+      "short_name": "mdl",
+      "description": "Model",
+      "last_modified": "2025-05-25T07:22:27Z"
+    }
+  },
+  "entities": {
+    "usr": {
+      "short_name": "usr",
+      "description": "User",
+      "last_modified": "2025-05-25T09:46:40Z"
+    },
+    "z": {
+      "short_name": "z",
+      "description": "Zone",
+      "last_modified": "2025-05-25T06:37:02Z"
+    }
+  },
   "principles": {
-    "u": {
-      "short_name": "u",
-      "long_name": "UI/UX",
-      "guidance": "UI/UX evaluation guidelines",
-      "last_modified": "2025-05-21T09:03:24Z"
-    },
-    "a": {
-      "short_name": "a",
-      "long_name": "Architecture",
-      "guidance": "Architecture evaluation guidelines",
-      "last_modified": "2025-05-21T09:03:24Z"
-    },
     "p": {
       "short_name": "p",
       "long_name": "Performance",
       "guidance": "Performance evaluation guidelines",
       "last_modified": "2025-05-21T09:03:24Z"
     },
+    "rel": {
+      "short_name": "rel",
+      "long_name": "Reliability",
+      "guidance": "System reliability and uptime",
+      "last_modified": "2025-05-25T07:44:41Z"
+    },
+    "a": {
+      "short_name": "a",
+      "long_name": "Architecture",
+      "guidance": "Architecture",
+      "last_modified": "2025-05-25T09:46:33Z"
+    },
     "s": {
       "short_name": "s",
       "long_name": "Security",
       "guidance": "Security evaluation guidelines",
       "last_modified": "2025-05-21T09:03:24Z"
+    },
+    "u": {
+      "short_name": "u",
+      "long_name": "UI/UX",
+      "guidance": "UI/UX evaluation guidelines",
+      "last_modified": "2025-05-21T09:03:24Z"
     }
   },
-  "asset_references": {}
+  "asset_references": {
+    "xem": {
+      "short_name": "xem",
+      "entity": "x",
+      "asset_type": "m",
+      "path": "exemplar.js",
+      "last_modified": "2025-05-25T06:48:04Z",
+      "exemplar": false,
+      "principle_reviews": {},
+      "arch_rating": null,
+      "sec_rating": null,
+      "perf_rating": null,
+      "ui_rating": null,
+      "arch_analysis": null,
+      "sec_analysis": null,
+      "perf_analysis": null,
+      "ui_analysis": null
+    },
+    "userctrl": {
+      "short_name": "userctrl",
+      "entity": "usr",
+      "asset_type": "c",
+      "path": "UserController.js",
+      "last_modified": "2025-05-25T09:49:14Z",
+      "exemplar": true,
+      "principle_reviews": {
+        "a": {
+          "rating": "H",
+          "analysis": "",
+          "last_modified": "2025-05-25T09:48:31Z"
+        }
+      },
+      "arch_rating": "H",
+      "sec_rating": null,
+      "perf_rating": null,
+      "ui_rating": null,
+      "arch_analysis": "",
+      "sec_analysis": null,
+      "perf_analysis": null,
+      "ui_analysis": null
+    }
+  }
 }

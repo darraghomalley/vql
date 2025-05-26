@@ -1,0 +1,166 @@
+{
+  "header": {
+    "action": "ACTION",
+    "cli_syntax": "CLI VQL Syntax with Examples",
+    "llm_placeholder": "LLM Virtual VQL Syntax with [Placeholders]",
+    "llm_example": "LLM Virtual VQL Syntax with Examples"
+  },
+  "commands": [
+    {
+      "action": "VQL ON",
+      "cli_syntax": "N/A",
+      "llm_placeholder": ":-vql on",
+      "llm_example": ":-vql on"
+    },
+    {
+      "action": "VQL OFF",
+      "cli_syntax": "N/A",
+      "llm_placeholder": ":-vql off",
+      "llm_example": ":-vql off"
+    },
+    {
+      "action": "VQL SETUP",
+      "cli_syntax": "vql -su \"C:/Project/Folder\"",
+      "llm_placeholder": ":-su([ProjectFolderFullPath])",
+      "llm_example": ":-su(\"C:/Project/Folder\")"
+    },
+    {
+      "action": "SHOW ALL PRINCIPLES",
+      "cli_syntax": "vql -pr",
+      "llm_placeholder": ":-pr",
+      "llm_example": ":-pr"
+    },
+    {
+      "action": "GET PRINCIPLES",
+      "cli_syntax": "vql -pr -get \"C:/Reference/Principles.md\"",
+      "llm_placeholder": ":-pr.get([PrinciplesMdPath])",
+      "llm_example": ":-pr.get(\"C:/Reference/PRINCIPLES.md\")"
+    },
+    {
+      "action": "SHOW ALL ENTITIES",
+      "cli_syntax": "vql -er",
+      "llm_placeholder": ":-er",
+      "llm_example": ":-er"
+    },
+    {
+      "action": "SHOW ALL ASSET TYPES",
+      "cli_syntax": "vql -at",
+      "llm_placeholder": ":-at",
+      "llm_example": ":-at"
+    },
+    {
+      "action": "SHOW ALL ASSET REFERENCES",
+      "cli_syntax": "vql -ar",
+      "llm_placeholder": ":-ar",
+      "llm_example": ":-ar"
+    },
+    {
+      "action": "ADD PRINCIPLE",
+      "cli_syntax": "vql -pr -add a Architecture \"Architecture Principles\"",
+      "llm_placeholder": ":-pr.add([PrincipleShortName], [PrincipleLongName], [PrincipleGuidance])",
+      "llm_example": ":-pr.add(a, Architecture, \"Architecture Principles\")"
+    },
+    {
+      "action": "ADD PRINCIPLE",
+      "cli_syntax": "vql -pr -add s Security \"Security Principles\"",
+      "llm_placeholder": ":-pr.add([PrincipleShortName], [PrincipleLongName], [PrincipleGuidance])",
+      "llm_example": ":-pr.add(s, Security, \"Security Principles\")"
+    },
+    {
+      "action": "ADD ENTITY",
+      "cli_syntax": "vql -er -add u User",
+      "llm_placeholder": ":-er.add([entityShortName], [entityLongName])",
+      "llm_example": ":-er.add(u, User)"
+    },
+    {
+      "action": "ADD ENTITY",
+      "cli_syntax": "vql -er -add p Profile",
+      "llm_placeholder": ":-er.add([entityShortName], [entityLongName])",
+      "llm_example": ":-er.add(p, Profile)"
+    },
+    {
+      "action": "ADD ASSET TYPE",
+      "cli_syntax": "vql -at -add c Controller",
+      "llm_placeholder": ":-at.add([assetTypeShortName], [assetTypeDescription])",
+      "llm_example": ":-at.add(c, Controller)"
+    },
+    {
+      "action": "ADD ASSET REFERENCE",
+      "cli_syntax": "vql -ar -add uc u c \"C:/Project/UserController.js\"",
+      "llm_placeholder": ":-ar.add([assetRef], [entityShortName], [assetTypeShortName], [assetPath])",
+      "llm_example": ":-ar.add(uc, u, c, \"C:/Project/UserController.js\")"
+    },
+    {
+      "action": "ADD ASSET REFERENCE",
+      "cli_syntax": "vql -ar -add pc p c \"C:/Project/ProfileController.js\"",
+      "llm_placeholder": ":-ar.add([assetRef], [entityShortName], [assetTypeShortName], [assetPath])",
+      "llm_example": ":-ar.add(pc, p, c, \"C:/Project/ProfileController.js\")"
+    },
+    {
+      "action": "STORE ASSET REVIEW",
+      "cli_syntax": "vql -st uc \"Review Content\"",
+      "llm_placeholder": ":[assetRef].st([PrincipleShortName], [ReviewContent])",
+      "llm_example": ":uc.st(a, \"Review Content\")"
+    },
+    {
+      "action": "REVIEW ALL ASSETS",
+      "cli_syntax": "(LLM Only)",
+      "llm_placeholder": ":-rv([itemNames...|-pr])",
+      "llm_example": ":-rv(-pr) | :-rv(a,s)"
+    },
+    {
+      "action": "REVIEW SPECIFIC ASSET",
+      "cli_syntax": "(LLM Only)",
+      "llm_placeholder": ":[assetRef].rv([itemNames...|-pr])",
+      "llm_example": ":uc.rv(-pr) | :uc.rv(a,s)"
+    },
+    {
+      "action": "RETRIEVE ALL REVIEWS FOR A SPECIFIC ASSET",
+      "cli_syntax": "vql uc?",
+      "llm_placeholder": ":[assetRef]?",
+      "llm_example": ":uc?"
+    },
+    {
+      "action": "RETRIEVE 1 or MORE SPECIFIC REVIEWS FOR AN ASSET",
+      "cli_syntax": "vql uc?(a,s)",
+      "llm_placeholder": ":[assetRef]?([PrincipleShortName], [PrincipleShortName])",
+      "llm_example": ":uc?(a,s)"
+    },
+    {
+      "action": "SET AN ASSET AS AN EXEMPLAR",
+      "cli_syntax": "vql -se uc t",
+      "llm_placeholder": ":[assetRef].se([t|f])",
+      "llm_example": ":uc.se(t)"
+    },
+    {
+      "action": "SET AN ASSET'S COMPLIANCE",
+      "cli_syntax": "vql -sc uc a H",
+      "llm_placeholder": ":[assetRef].sc([PrincipleShortName] [H|M|L])",
+      "llm_example": ":uc.sc(a,H)"
+    },
+    {
+      "action": "REFACTOR ALL ASSETS",
+      "cli_syntax": "(LLM Only)",
+      "llm_placeholder": ":-rf([itemNames...|-pr])",
+      "llm_example": ":-rf(-pr) | :-rf(a,s)"
+    },
+    {
+      "action": "REFACTOR SPECIFIC ASSET",
+      "cli_syntax": "(LLM Only)",
+      "llm_placeholder": ":[assetRef].rf([itemNames...|-pr[, refItemNames...]])",
+      "llm_example": ":uc.rf(-pr) | :uc.rf(a,s) | :uc.rf(-pr,pc) | :uc.rf(a,s,pc,tm)"
+    },
+    {
+      "action": "RENAME ANY ITEM (UNIFIED NAMESPACE)",
+      "cli_syntax": "vql -rn oldname newname",
+      "llm_placeholder": ":rn([oldname], [newname])",
+      "llm_example": ":rn(uc, usrctrl)"
+    },
+    {
+      "action": "DELETE ANY ITEM (UNIFIED NAMESPACE)",
+      "cli_syntax": "vql -dl itemname",
+      "llm_placeholder": ":dl([itemname])",
+      "llm_example": ":dl(uc)"
+    }
+  ]
+}

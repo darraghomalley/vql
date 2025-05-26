@@ -159,132 +159,18 @@ pub struct JsonStorage {
 }
 
 impl JsonStorage {
-    /// Creates a new JsonStorage with default built-in commands
+    /// Creates a new empty JsonStorage structure
     pub fn new() -> Self {
         let now = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
-        
-        let mut commands = HashMap::new();
-        let mut principles = HashMap::new();
-        
-        // Add built-in commands
-        commands.insert("ar".to_string(), CommandConfig {
-            name: "ar".to_string(),
-            description: "Asset Register - Manages asset references".to_string(),
-            last_modified: now.clone(),
-            original_name: None,
-            built_in: true,
-        });
-        
-        commands.insert("at".to_string(), CommandConfig {
-            name: "at".to_string(),
-            description: "Asset Type - Manages asset types".to_string(),
-            last_modified: now.clone(),
-            original_name: None,
-            built_in: true,
-        });
-        
-        commands.insert("er".to_string(), CommandConfig {
-            name: "er".to_string(),
-            description: "Entity Register - Manages entity definitions".to_string(),
-            last_modified: now.clone(),
-            original_name: None,
-            built_in: true,
-        });
-        
-        commands.insert("pr".to_string(), CommandConfig {
-            name: "pr".to_string(),
-            description: "Principle - Manages principles for reviewing assets".to_string(),
-            last_modified: now.clone(),
-            original_name: None,
-            built_in: true,
-        });
-        
-        commands.insert("setup".to_string(), CommandConfig {
-            name: "setup".to_string(),
-            description: "Creates VQL directory in current location".to_string(),
-            last_modified: now.clone(),
-            original_name: None,
-            built_in: true,
-        });
-        
-        commands.insert("st".to_string(), CommandConfig {
-            name: "st".to_string(),
-            description: "Store - Stores a review for an asset".to_string(),
-            last_modified: now.clone(),
-            original_name: None,
-            built_in: true,
-        });
-        
-        commands.insert("se".to_string(), CommandConfig {
-            name: "se".to_string(),
-            description: "Set Exemplar - Sets exemplar status for an asset".to_string(),
-            last_modified: now.clone(),
-            original_name: None,
-            built_in: true,
-        });
-        
-        commands.insert("sc".to_string(), CommandConfig {
-            name: "sc".to_string(),
-            description: "Set Compliance - Sets compliance rating for an asset".to_string(),
-            last_modified: now.clone(),
-            original_name: None,
-            built_in: true,
-        });
-        
-        // Special commands for review and refactor (LLM only)
-        commands.insert("rv".to_string(), CommandConfig {
-            name: "rv".to_string(),
-            description: "Review - AI-assisted review of assets (LLM only)".to_string(),
-            last_modified: now.clone(),
-            original_name: None,
-            built_in: true,
-        });
-        
-        commands.insert("rf".to_string(), CommandConfig {
-            name: "rf".to_string(),
-            description: "Refactor - AI-assisted refactoring of assets (LLM only)".to_string(),
-            last_modified: now.clone(),
-            original_name: None,
-            built_in: true,
-        });
-        
-        // Add default principles
-        principles.insert("a".to_string(), Principle {
-            short_name: "a".to_string(),
-            long_name: "Architecture".to_string(),
-            guidance: Some("Architecture evaluation guidelines".to_string()),
-            last_modified: now.clone(),
-        });
-        
-        principles.insert("s".to_string(), Principle {
-            short_name: "s".to_string(),
-            long_name: "Security".to_string(),
-            guidance: Some("Security evaluation guidelines".to_string()),
-            last_modified: now.clone(),
-        });
-        
-        principles.insert("p".to_string(), Principle {
-            short_name: "p".to_string(),
-            long_name: "Performance".to_string(),
-            guidance: Some("Performance evaluation guidelines".to_string()),
-            last_modified: now.clone(),
-        });
-        
-        principles.insert("u".to_string(), Principle {
-            short_name: "u".to_string(),
-            long_name: "UI/UX".to_string(),
-            guidance: Some("UI/UX evaluation guidelines".to_string()),
-            last_modified: now.clone(),
-        });
         
         JsonStorage {
             version: "1.0.0".to_string(),
             created: now.clone(),
             last_modified: now,
-            commands,
+            commands: HashMap::new(),
             asset_types: HashMap::new(),
             entities: HashMap::new(),
-            principles,
+            principles: HashMap::new(),
             asset_references: HashMap::new(),
         }
     }
@@ -327,6 +213,62 @@ impl JsonStorage {
         fs::write(&json_file_path, json_content)
             .context(format!("Failed to write VQL storage to {}", json_file_path.display()))?;
             
+        Ok(())
+    }
+    
+    /// Find what type an item is by its name
+    pub fn find_item_type(&self, name: &str) -> Option<&'static str> {
+        if self.principles.contains_key(name) {
+            Some("principle")
+        } else if self.entities.contains_key(name) {
+            Some("entity")
+        } else if self.asset_types.contains_key(name) {
+            Some("asset_type")
+        } else if self.asset_references.contains_key(name) {
+            Some("asset")
+        } else {
+            None
+        }
+    }
+    
+    /// Check if a name is available across all user-defined types
+    pub fn check_name_availability(&self, name: &str) -> Result<()> {
+        // Check principles
+        if let Some(principle) = self.principles.get(name) {
+            return Err(anyhow::anyhow!(
+                "Short name '{}' already in use by principle '{}'", 
+                name, 
+                principle.long_name
+            ));
+        }
+        
+        // Check entities
+        if let Some(entity) = self.entities.get(name) {
+            return Err(anyhow::anyhow!(
+                "Short name '{}' already in use by entity '{}'", 
+                name, 
+                entity.description
+            ));
+        }
+        
+        // Check asset types
+        if let Some(asset_type) = self.asset_types.get(name) {
+            return Err(anyhow::anyhow!(
+                "Short name '{}' already in use by asset type '{}'", 
+                name, 
+                asset_type.description
+            ));
+        }
+        
+        // Check asset references
+        if let Some(asset_ref) = self.asset_references.get(name) {
+            return Err(anyhow::anyhow!(
+                "Short name '{}' already in use by asset '{}'", 
+                name, 
+                asset_ref.path
+            ));
+        }
+        
         Ok(())
     }
     
@@ -422,6 +364,9 @@ impl JsonStorage {
             return Err(anyhow::anyhow!("Asset type short name must be a single character"));
         }
         
+        // Check name availability across all types
+        self.check_name_availability(short_name)?;
+        
         // Create new asset type
         let asset_type = AssetType {
             short_name: short_name.to_string(),
@@ -440,6 +385,9 @@ impl JsonStorage {
     
     /// Add or update an entity
     pub fn add_entity(&mut self, short_name: &str, description: &str) -> Result<()> {
+        // Check name availability across all types
+        self.check_name_availability(short_name)?;
+        
         // Create new entity
         let entity = Entity {
             short_name: short_name.to_string(),
@@ -464,6 +412,9 @@ impl JsonStorage {
         asset_type: &str, 
         path: &str
     ) -> Result<()> {
+        // Check name availability across all types
+        self.check_name_availability(short_name)?;
+        
         // Validate entity exists
         if !self.entities.contains_key(entity) {
             return Err(anyhow::anyhow!("Entity {} does not exist", entity));
@@ -578,6 +529,9 @@ impl JsonStorage {
             return Err(anyhow::anyhow!("Principle short name must be a single character"));
         }
         
+        // Check name availability across all types
+        self.check_name_availability(short_name)?;
+        
         // Create new principle
         let principle = Principle {
             short_name: short_name.to_string(),
@@ -685,6 +639,242 @@ impl JsonStorage {
         
         // Return all reviews
         Ok(&asset.principle_reviews)
+    }
+    
+    /// Rename a principle
+    pub fn rename_principle(&mut self, old_name: &str, new_name: &str) -> Result<()> {
+        // Check if old principle exists
+        if !self.principles.contains_key(old_name) {
+            return Err(anyhow::anyhow!("Principle '{}' not found", old_name));
+        }
+        
+        // Check if new name is available
+        self.check_name_availability(new_name)?;
+        
+        // Get the principle data
+        let principle = self.principles.remove(old_name)
+            .ok_or_else(|| anyhow::anyhow!("Failed to remove principle"))?;
+        
+        // Update principle with new name
+        let mut updated_principle = principle;
+        updated_principle.short_name = new_name.to_string();
+        updated_principle.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+        
+        // Insert with new name
+        self.principles.insert(new_name.to_string(), updated_principle);
+        
+        // Cascade: Update principle keys in all asset reviews
+        for asset in self.asset_references.values_mut() {
+            if let Some(review) = asset.principle_reviews.remove(old_name) {
+                asset.principle_reviews.insert(new_name.to_string(), review);
+            }
+        }
+        
+        // Update storage last modified
+        self.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+        
+        Ok(())
+    }
+    
+    /// Rename an entity
+    pub fn rename_entity(&mut self, old_name: &str, new_name: &str) -> Result<()> {
+        // Check if old entity exists
+        if !self.entities.contains_key(old_name) {
+            return Err(anyhow::anyhow!("Entity '{}' not found", old_name));
+        }
+        
+        // Check if new name is available
+        self.check_name_availability(new_name)?;
+        
+        // Get the entity data
+        let entity = self.entities.remove(old_name)
+            .ok_or_else(|| anyhow::anyhow!("Failed to remove entity"))?;
+        
+        // Update entity with new name
+        let mut updated_entity = entity;
+        updated_entity.short_name = new_name.to_string();
+        updated_entity.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+        
+        // Insert with new name
+        self.entities.insert(new_name.to_string(), updated_entity);
+        
+        // Cascade: Update entity references in all assets
+        for asset in self.asset_references.values_mut() {
+            if asset.entity == old_name {
+                asset.entity = new_name.to_string();
+                asset.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+            }
+        }
+        
+        // Update storage last modified
+        self.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+        
+        Ok(())
+    }
+    
+    /// Rename an asset type
+    pub fn rename_asset_type(&mut self, old_name: &str, new_name: &str) -> Result<()> {
+        // Check if old asset type exists
+        if !self.asset_types.contains_key(old_name) {
+            return Err(anyhow::anyhow!("Asset type '{}' not found", old_name));
+        }
+        
+        // Check if new name is available
+        self.check_name_availability(new_name)?;
+        
+        // Get the asset type data
+        let asset_type = self.asset_types.remove(old_name)
+            .ok_or_else(|| anyhow::anyhow!("Failed to remove asset type"))?;
+        
+        // Update asset type with new name
+        let mut updated_asset_type = asset_type;
+        updated_asset_type.short_name = new_name.to_string();
+        updated_asset_type.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+        
+        // Insert with new name
+        self.asset_types.insert(new_name.to_string(), updated_asset_type);
+        
+        // Cascade: Update asset type references in all assets
+        for asset in self.asset_references.values_mut() {
+            if asset.asset_type == old_name {
+                asset.asset_type = new_name.to_string();
+                asset.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+            }
+        }
+        
+        // Update storage last modified
+        self.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+        
+        Ok(())
+    }
+    
+    /// Rename an asset reference
+    pub fn rename_asset_reference(&mut self, old_name: &str, new_name: &str) -> Result<()> {
+        // Check if old asset exists
+        if !self.asset_references.contains_key(old_name) {
+            return Err(anyhow::anyhow!("Asset '{}' not found", old_name));
+        }
+        
+        // Check if new name is available
+        self.check_name_availability(new_name)?;
+        
+        // Get the asset data
+        let asset = self.asset_references.remove(old_name)
+            .ok_or_else(|| anyhow::anyhow!("Failed to remove asset"))?;
+        
+        // Update asset with new name
+        let mut updated_asset = asset;
+        updated_asset.short_name = new_name.to_string();
+        updated_asset.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+        
+        // Insert with new name
+        self.asset_references.insert(new_name.to_string(), updated_asset);
+        
+        // Update storage last modified
+        self.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+        
+        Ok(())
+    }
+    
+    /// Delete a principle (cascades to remove from all asset reviews)
+    pub fn delete_principle(&mut self, name: &str) -> Result<()> {
+        // Check if principle exists
+        if !self.principles.contains_key(name) {
+            return Err(anyhow::anyhow!("Principle '{}' not found", name));
+        }
+        
+        // Remove principle
+        self.principles.remove(name);
+        
+        // Cascade: Remove this principle from all asset reviews
+        for asset in self.asset_references.values_mut() {
+            asset.principle_reviews.remove(name);
+        }
+        
+        // Update storage last modified
+        self.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+        
+        Ok(())
+    }
+    
+    /// Delete an entity (blocks if assets exist)
+    pub fn delete_entity(&mut self, name: &str) -> Result<()> {
+        // Check if entity exists
+        if !self.entities.contains_key(name) {
+            return Err(anyhow::anyhow!("Entity '{}' not found", name));
+        }
+        
+        // Check if any assets use this entity
+        let assets_using_entity: Vec<String> = self.asset_references
+            .iter()
+            .filter(|(_, asset)| asset.entity == name)
+            .map(|(name, _)| name.clone())
+            .collect();
+            
+        if !assets_using_entity.is_empty() {
+            return Err(anyhow::anyhow!(
+                "Cannot delete entity '{}' - it is used by {} asset(s): {}", 
+                name,
+                assets_using_entity.len(),
+                assets_using_entity.join(", ")
+            ));
+        }
+        
+        // Safe to remove
+        self.entities.remove(name);
+        
+        // Update storage last modified
+        self.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+        
+        Ok(())
+    }
+    
+    /// Delete an asset type (blocks if assets exist)
+    pub fn delete_asset_type(&mut self, name: &str) -> Result<()> {
+        // Check if asset type exists
+        if !self.asset_types.contains_key(name) {
+            return Err(anyhow::anyhow!("Asset type '{}' not found", name));
+        }
+        
+        // Check if any assets use this type
+        let assets_using_type: Vec<String> = self.asset_references
+            .iter()
+            .filter(|(_, asset)| asset.asset_type == name)
+            .map(|(name, _)| name.clone())
+            .collect();
+            
+        if !assets_using_type.is_empty() {
+            return Err(anyhow::anyhow!(
+                "Cannot delete asset type '{}' - it is used by {} asset(s): {}", 
+                name,
+                assets_using_type.len(),
+                assets_using_type.join(", ")
+            ));
+        }
+        
+        // Safe to remove
+        self.asset_types.remove(name);
+        
+        // Update storage last modified
+        self.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+        
+        Ok(())
+    }
+    
+    /// Delete an asset reference (removes all its reviews)
+    pub fn delete_asset_reference(&mut self, name: &str) -> Result<()> {
+        // Check if asset exists
+        if !self.asset_references.contains_key(name) {
+            return Err(anyhow::anyhow!("Asset '{}' not found", name));
+        }
+        
+        // Remove the asset (reviews are removed with it)
+        self.asset_references.remove(name);
+        
+        // Update storage last modified
+        self.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+        
+        Ok(())
     }
 }
 

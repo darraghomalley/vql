@@ -2,6 +2,8 @@
 
 This document provides comprehensive guidance for understanding and using VQL (Vibe Query Language) commands in LLM-assisted software development sessions.
 
+**IMPORTANT**: This guidance includes the complete canonical command specification from `canonicalCmds.json`. When VQL setup creates clean storage, use this document as the authoritative reference for all available commands and syntax patterns.
+
 ## MCP Server Integration (Recommended)
 
 VQL is now available as a Model Context Protocol (MCP) server, providing structured tool access for AI assistants. This is the recommended way to use VQL in Claude Code sessions.
@@ -132,8 +134,12 @@ When VQL MCP server is available, you'll have access to structured tools instead
 - `add_principle(short, long, guidance)` - Add a new principle
 - `list_assets()` - Show all assets
 - `store_review(asset, principle, review)` - Store a review
-- `review_asset_all_principles(asset)` - AI workflow to review an asset
-- `refactor_asset_principles(asset, principles)` - AI workflow to refactor
+- `review_asset_all_principles(asset)` - AI workflow to review an asset against all principles
+- `review_asset_principles(asset, principles)` - AI workflow to review an asset against specific principles
+- `refactor_asset_all_principles(asset)` - AI workflow to refactor an asset for all principles
+- `refactor_asset_principles(asset, principles)` - AI workflow to refactor for specific principles
+- `refactor_asset_principles_with_references(asset, principles, referenceAssets)` - Refactor using reference assets
+- `refactor_asset_all_principles_with_references(asset, referenceAssets)` - Refactor for all principles using references
 
 **Benefits of MCP over CLI commands**:
 - Type-safe parameters
@@ -186,38 +192,84 @@ LLM commands fall into three distinct categories that require different handling
    - `:uc?(a,s)` - Query asset 'uc' for principles 'a' and 's'
    - `:uc.rv(a,s,p)` - Review principles 'a', 's', and 'p' for asset 'uc'
 
-## Command Translation Reference
+## Canonical Commands Reference
 
-This table provides an exact mapping between LLM Virtual VQL syntax and CLI VQL syntax. LLMs should translate from the LLM Virtual VQL Syntax to the CLI VQL Syntax when processing commands.
+**IMPORTANT**: The `canonicalCmds.json` file serves as the **authoritative specification** for all VQL commands. This section provides the complete reference derived from that canonical source.
 
-| Action                                           | LLM Virtual VQL Syntax                                             | CLI VQL Syntax                                                   | Notes                                  |
-|--------------------------------------------------|--------------------------------------------------------------------|-----------------------------------------------------------------|----------------------------------------|
-| VQL ON                                           | `:-vql on`                                                         | N/A                                                             | LLM-only command                       |
-| VQL OFF                                          | `:-vql off`                                                        | N/A                                                             | LLM-only command                       |
-| SHOW ALL PRINCIPLES                              | `:-pr`                                                             | `vql -pr`                                                        |                                        |
-| GET PRINCIPLES                                   | `:-pr.get([principlesMdPath])` <br> Example: `:-pr.get("C:/Reference/principles.md")` | `vql -pr -get "[principlesMdPath]"` <br> Example: `vql -pr -get "C:/Reference/principles.md"` | DIRECT COMMAND: Must be executed by calling CLI through Bash tool |
-| SHOW ALL ENTITIES                                | `:-er`                                                             | `vql -er`                                                        |                                        |
-| SHOW ALL ASSET TYPES                             | `:-at`                                                             | `vql -at`                                                        |                                        |
-| SHOW ALL ASSET REFERENCES                        | `:-ar`                                                             | `vql -ar`                                                        |                                        |
-| ADD PRINCIPLE                                    | `:-pr.add([principleShortName], [principleLongName], [principleGuidance])` <br> Example: `:-pr.add(a, Architecture, "Architecture Principles")` | `vql -pr -add [principleShortName] [principleLongName] "[principleGuidance]"` <br> Example: `vql -pr -add a Architecture "Architecture Principles"` | Guidance must be in quotes             |
-| ADD ENTITY                                       | `:-er.add([entityShortName], [entityLongName])` <br> Example: `:-er.add(u, User)` | `vql -er -add [entityShortName] [entityLongName]` <br> Example: `vql -er -add u User` |                                        |
-| ADD ASSET TYPE                                   | `:-at.add([assetTypeShortName], [assetTypeLongName])` <br> Example: `:-at.add(c, Controller)` | `vql -at -add [assetTypeShortName] [assetTypeLongName]` <br> Example: `vql -at -add c Controller` |                                        |
-| ADD ASSET REFERENCE                              | `:-ar.add([assetRef], [entityShortName], [assetTypeShortName], [assetPath])` <br> Example: `:-ar.add(uc, u, c, "C:/Project/UserController.js")` | `vql -ar -add [assetRef] [entityShortName] [assetTypeShortName] "[assetPath]"` <br> Example: `vql -ar -add uc u c "C:/Project/UserController.js"` | Path must be in quotes |
-| STORE ASSET REVIEW                               | `:[assetRef].st([principle1ShortName], [reviewContent])` <br> Example: `:uc.st(a, "Review Content")` | `vql -st [assetRef] [principle1ShortName] "[reviewContent]"` <br> Example: `vql -st uc a "Review Content"` | Content must be in quotes              |
-| RETRIEVE ALL REVIEWS FOR SPECIFIC ASSET          | `:[assetRef]?` <br> Example: `:uc?`                                | No direct CLI equivalent - Read from VQL storage file            | See "Handling Unsupported Commands" section |
-| RETRIEVE SPECIFIC REVIEWS FOR AN ASSET           | `:[assetRef]?([principle1ShortName] [principle2ShortName])` <br> Example: `:uc?(a,s)` | No direct CLI equivalent - Read from VQL storage file            | See "Handling Unsupported Commands" section |
-| SET AN ASSET AS AN EXEMPLAR                      | `:[assetRef].se([t\|f])` <br> Example: `:uc.se(t)`                 | `vql -se [assetRef] [t\|f]` <br> Example: `vql -se uc t`         | t=true, f=false                        |
-| SET AN ASSET'S COMPLIANCE                        | `:[assetRef].sc([principle1ShortName] [H\|M\|L])` <br> Example: `:uc.sc(a,H)` | `vql -sc [assetRef] [principle1ShortName] [H\|M\|L]` <br> Example: `vql -sc uc a H` | H=High, M=Medium, L=Low                |
-| SETUP VQL                                        | `:-su([ProjectFolderFullPath])` <br> Example: `:-su("C:/Project/Folder")` | `vql -su "[ProjectFolderFullPath]"` <br> Example: `vql -su "C:/Project/Folder"` | DIRECT COMMAND: Must be executed by calling CLI through Bash tool |
-| REVIEW ALL ASSETS BY ALL PRINCIPLES              | `:-rv(*)`                                                          | N/A - Virtual LLM command                                        | LLM-only virtual command               |
-| REVIEW ALL ASSETS BY SPECIFIED PRINCIPLES        | `:-rv([principle1ShortName] [principle2ShortName])` <br> Example: `:-rv(a,s)` | N/A - Virtual LLM command                                        | LLM-only virtual command               |
-| REVIEW SPECIFIC ASSET BY ALL PRINCIPLES          | `:[assetRef].rv(*)` <br> Example: `:uc.rv(*)`                      | N/A - Virtual LLM command                                        | LLM-only virtual command               |
-| REVIEW ASSET BY SPECIFIED PRINCIPLES             | `:[assetRef].rv([principle1ShortName] [principle2ShortName])` <br> Example: `:uc.rv(a,s)` | N/A - Virtual LLM command                                        | LLM-only virtual command               |
-| REFACTOR ALL ASSETS BY ALL PRINCIPLES            | `:-rf(*)`                                                          | N/A - Virtual LLM command                                        | LLM-only virtual command               |
-| REFACTOR ALL ASSETS BY SPECIFIED PRINCIPLES      | `:-rf([principle1ShortName] [principle2ShortName])` <br> Example: `:-rf(a,s)` | N/A - Virtual LLM command                                        | LLM-only virtual command               |
-| REFACTOR SPECIFIC ASSET BY ALL PRINCIPLES        | `:[assetRef].rf(*)` <br> Example: `:uc.rf(*)`                      | N/A - Virtual LLM command                                        | LLM-only virtual command               |
-| REFACTOR ASSET BY SPECIFIED PRINCIPLES           | `:[assetRef].rf([principle1ShortName] [principle2ShortName])` <br> Example: `:uc.rf(a,s)` | N/A - Virtual LLM command                                        | LLM-only virtual command               |
-| REFACTOR ASSET USING ANOTHER ASSET AS REFERENCE  | `:[assetRef].rf([assetRef2])` <br> Example: `:up.rf(uc)`           | N/A - Virtual LLM command                                        | LLM-only virtual command               |
+### Command Authority
+- All VQL commands must conform to the patterns specified in `canonicalCmds.json`
+- When in doubt, refer to the canonical file for the definitive syntax
+- CLI implementation must align with these canonical specifications
+- LLM should use these exact patterns when processing VQL commands
+
+### Complete Command Specification
+
+The following table contains all canonical VQL commands with exact syntax patterns:
+
+| Action | CLI Syntax | LLM Placeholder | LLM Example | Type |
+|--------|------------|-----------------|-------------|------|
+| VQL ON | N/A | `:-vql on` | `:-vql on` | LLM Only |
+| VQL OFF | N/A | `:-vql off` | `:-vql off` | LLM Only |
+| VQL SETUP | `vql -su "C:/Project/Folder"` | `:-su([ProjectFolderFullPath])` | `:-su("C:/Project/Folder")` | Direct Exec |
+| SHOW ALL PRINCIPLES | `vql -pr` | `:-pr` | `:-pr` | Standard |
+| GET PRINCIPLES | `vql -pr -get "C:/Reference/Principles.md"` | `:-pr.get([PrinciplesMdPath])` | `:-pr.get("C:/Reference/PRINCIPLES.md")` | Direct Exec |
+| SHOW ALL ENTITIES | `vql -er` | `:-er` | `:-er` | Standard |
+| SHOW ALL ASSET TYPES | `vql -at` | `:-at` | `:-at` | Standard |
+| SHOW ALL ASSET REFERENCES | `vql -ar` | `:-ar` | `:-ar` | Standard |
+| ADD PRINCIPLE | `vql -pr -add a Architecture "Architecture Principles"` | `:-pr.add([PrincipleShortName], [PrincipleLongName], [PrincipleGuidance])` | `:-pr.add(a, Architecture, "Architecture Principles")` | Standard |
+| ADD ENTITY | `vql -er -add u User` | `:-er.add([entityShortName], [entityLongName])` | `:-er.add(u, User)` | Standard |
+| ADD ASSET TYPE | `vql -at -add c Controller` | `:-at.add([assetTypeShortName], [assetTypeLongName])` | `:-at.add(c, Controller)` | Standard |
+| ADD ASSET REFERENCE | `vql -ar -add uc u c "C:/Project/UserController.js"` | `:-ar.add([assetRef], [entityType], [assetType], [assetPath])` | `:-ar.add(uc, u, c, "C:/Project/UserController.js")` | Standard |
+| STORE ASSET REVIEW | `vql -st uc "Review Content"` | `:[assetRef].st([Principle1ShortName], [ReviewContent])` | `:uc.st(a, "Review Content")` | Standard |
+| REVIEW ALL ASSETS | (LLM Only) | `:-rv([itemNames...|-pr])` | `:-rv(-pr) \| :-rv(a,s)` | Virtual Workflow |
+| REVIEW SPECIFIC ASSET | (LLM Only) | `:[assetRef].rv([itemNames...|-pr])` | `:uc.rv(-pr) \| :uc.rv(a,s)` | Virtual Workflow |
+| RETRIEVE ALL REVIEWS FOR ASSET | `vql uc?` | `:[assetRef]?` | `:uc?` | Query |
+| RETRIEVE SPECIFIC REVIEWS | `vql uc?(a,s)` | `:[assetRef]?([PrincipleShortName], [PrincipleShortName])` | `:uc?(a,s)` | Query |
+| SET ASSET AS EXEMPLAR | `vql -se uc t` | `:[assetRef].se([t\|f])` | `:uc.se(t)` | Standard |
+| SET ASSET COMPLIANCE | `vql -sc uc a H` | `:[assetRef].sc([PrincipleShortName] [H\|M\|L])` | `:uc.sc(a,H)` | Standard |
+| REFACTOR ALL ASSETS | (LLM Only) | `:-rf([itemNames...|-pr])` | `:-rf(-pr) \| :-rf(a,s)` | Virtual Workflow |
+| REFACTOR SPECIFIC ASSET | (LLM Only) | `:[assetRef].rf([itemNames...|-pr[, refItemNames...]])` | `:uc.rf(-pr) \| :uc.rf(a,s) \| :uc.rf(-pr,pc) \| :uc.rf(a,s,pc,tm)` | Virtual Workflow |
+| RENAME ANY ITEM | `vql -rn oldname newname` | `:rn([oldname], [newname])` | `:rn(uc, usrctrl)` | Standard |
+| DELETE ANY ITEM | `vql -dl itemname` | `:dl([itemname])` | `:dl(uc)` | Standard |
+
+### Command Types Legend
+- **Standard**: Direct CLI translation commands
+- **Direct Exec**: Must be executed via Bash tool (modify environment)
+- **Virtual Workflow**: LLM-only multi-step AI workflows
+- **Query**: Asset information retrieval
+- **LLM Only**: Interface mode control commands
+
+## Command Processing Guidelines
+
+The canonical commands above provide the authoritative syntax patterns. When processing VQL commands, use this workflow:
+
+1. **Identify Command Type** from the canonical reference
+2. **Apply appropriate processing**:
+   - **Standard**: Translate LLM syntax to CLI syntax and execute
+   - **Direct Exec**: Translate and execute via Bash tool (modifies environment)
+   - **Virtual Workflow**: Execute multi-step AI analysis process
+   - **Query**: Retrieve information from VQL storage
+   - **LLM Only**: Handle interface mode changes
+
+### Translation Examples
+
+**Standard Command Translation**:
+```
+:-pr.add(a, Architecture, "Architecture Principles")
+→ vql -pr -add a Architecture "Architecture Principles"
+```
+
+**Direct Execution Command**:
+```
+:-su("C:/Project/Folder")
+→ Execute via Bash: vql -su "C:/Project/Folder"
+```
+
+**Virtual Workflow Command**:
+```
+:uc.rv(a,s)
+→ [Multi-step AI workflow] → Store results via: vql -st uc a "Review content"
+```
 
 ## Command Parameter Placeholders
 
@@ -379,21 +431,21 @@ The REVIEW command family enables comprehensive code quality assessment against 
 
 | LLM Virtual VQL Syntax | Description |
 |------------------------|-------------|
-| `:-rv(*)` | Review all assets against all principles |
+| `:-rv(-pr)` | Review all assets against all principles |
 | `:-rv(a,s)` | Review all assets against specific principles (a,s) |
-| `:[assetRef].rv(*)` | Review specific asset against all principles |
+| `:[assetRef].rv(-pr)` | Review specific asset against all principles |
 | `:[assetRef].rv(a,s)` | Review specific asset against specific principles |
 
 #### Workflow Execution
 
 ##### 1. Context Gathering Phase
 - Retrieve target asset content: `vql -ar` to list assets, use file reader to view code
-- For specified principles (or all if `*`), retrieve principle definitions: `vql -pr`
+- For specified principles (or all if `-pr`), retrieve principle definitions: `vql -pr`
 - Check existing reviews/ratings if available: `vql [assetRef]?(principle)` or `vql [assetRef]?`
 - Identify exemplar assets by listing all assets and checking exemplar flag: `vql -ar` (exemplars are marked in the output)
 
 ##### 2. Analysis Phase
-- For each target principle (or all if `*`):
+- For each target principle (or all if `-pr`):
   - Analyze code against specific principle criteria
   - Identify patterns that align with or violate principle guidelines
   - Compare with exemplars (if available) for this principle
@@ -429,12 +481,12 @@ The REVIEW command family enables comprehensive code quality assessment against 
 
 1. **Principle Scoping**:
    - If specific principles provided (e.g., `a,s`), only review those principles
-   - If `*` used, review all available principles
+   - If `-pr` used, review all available principles
    - Generate reviews only for specified principles
 
 2. **Asset Scoping**:
    - If specific asset provided (e.g., `uc`), only review that asset
-   - If global review command (e.g., `:-rv(*)`), review all assets
+   - If global review command (e.g., `:-rv(-pr)`), review all assets
 
 #### Review Guidelines
 
@@ -456,30 +508,46 @@ The REFACTOR command family enables principled code improvement through AI-assis
 
 | LLM Virtual VQL Syntax | Description |
 |------------------------|-------------|
-| `:-rf(*)` | Refactor all assets against all principles |
+| `:-rf(-pr)` | Refactor all assets against all principles |
 | `:-rf(a,s)` | Refactor all assets against specific principles (a,s) |
-| `:[assetRef].rf(*)` | Refactor specific asset against all principles |
+| `:[assetRef].rf(-pr)` | Refactor specific asset against all principles |
 | `:[assetRef].rf(a,s)` | Refactor specific asset against specific principles |
-| `:[assetRef].rf([assetRef2])` | Refactor specific asset using another asset as reference |
+| `:[assetRef].rf(-pr, pc)` | Refactor specific asset using all principles with pc as reference |
+| `:[assetRef].rf(a,s,pc,tm)` | Refactor specific asset using principles a,s with pc,tm as references |
+
+#### Parameter Syntax
+
+Refactor commands now support mixed parameter lists:
+- **Principles first**: Always specify principles before reference assets
+- **`-pr` token**: Use `-pr` to mean "all principles" 
+- **Reference assets**: Any parameters after principles are treated as reference asset names
+- **Examples**:
+  - `:uc.rf(-pr)` - refactor uc using all principles
+  - `:uc.rf(a,s)` - refactor uc using principles a and s
+  - `:uc.rf(-pr,pc)` - refactor uc using all principles with pc as reference
+  - `:uc.rf(a,s,pc,tm)` - refactor uc using principles a,s with pc and tm as references
 
 #### Workflow Execution
 
 ##### 1. Context Gathering Phase
 - Retrieve target asset content: `vql -ar` to list assets, use file reader to view code
-- For specified principles (or all if `*`), retrieve existing reviews: `vql [assetRef]?(principle)` or `vql [assetRef]?`
+- For specified principles (or all if `-pr`), retrieve existing reviews: `vql [assetRef]?(principle)` or `vql [assetRef]?`
 - Check compliance ratings for targeted principles
 - For reference-based refactoring, retrieve reference asset: `vql [assetRef2]?`
 - Access principle definitions: `vql -pr`
 
 ##### 2. Analysis Phase
-- For each target principle (or all if `*`):
+- For each target principle (or all if `-pr`):
   - Analyze how well code aligns with principle criteria
   - Identify specific patterns to improve
   - For each pattern, determine concrete code changes
   - Prioritize changes based on impact and complexity
 - For reference-based refactoring:
-  - Identify exemplary patterns in reference asset
+  - Parse principle list and reference assets from command parameters
+  - Read all reference asset files and their reviews
+  - Identify exemplary patterns in reference assets that demonstrate the principles
   - Determine how to apply similar patterns to target asset
+  - Synthesize best practices from multiple reference assets if provided
 
 ##### 3. Implementation Phase
 - Apply identified code changes to asset through appropriate edit commands
@@ -517,12 +585,12 @@ The REFACTOR command family enables principled code improvement through AI-assis
 
 1. **Principle Scoping**:
    - If specific principles provided (e.g., `a,s`), only those guide refactoring
-   - If `*` used, all principles guide refactoring
+   - If `-pr` used, all principles guide refactoring
    - Only update reviews for principles that guided the refactoring
 
 2. **Asset Scoping**:
    - If specific asset provided (e.g., `uc`), only refactor that asset
-   - If global refactor command (e.g., `:-rf(*)`), apply to all assets
+   - If global refactor command (e.g., `:-rf(-pr)`), apply to all assets
    - For reference-based refactoring, apply reference patterns to target asset
 
 3. **Reference-Based Rules**:

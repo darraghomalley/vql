@@ -32,7 +32,82 @@ fn process_llm_command(command: &str) -> Result<()> {
         "-vql on" => return handle_vql_mode(true),
         "-vql off" => return handle_vql_mode(false),
         "uc ?" => return show_asset_why("uc", None),
+        "mcp" => return handle_interface_mode("mcp"),
+        "cli" => return handle_interface_mode("cli"),
         _ => {}
+    }
+    
+    // Check for generic LLM operations first
+    // Format: :rn(old, new) - generic rename
+    let rn_re = Regex::new(r"^rn\(([^,]+),\s*([^)]+)\)$").unwrap();
+    if let Some(captures) = rn_re.captures(command) {
+        let old_name = captures.get(1).unwrap().as_str().trim();
+        let new_name = captures.get(2).unwrap().as_str().trim();
+        return rename_item(old_name, new_name);
+    }
+    
+    // Format: :dl(name) - generic delete
+    let dl_re = Regex::new(r"^dl\(([^)]+)\)$").unwrap();
+    if let Some(captures) = dl_re.captures(command) {
+        let name = captures.get(1).unwrap().as_str().trim();
+        return delete_item(name);
+    }
+    
+    // Format: :ls() or :ls - list all types
+    if command == "ls()" || command == "ls" {
+        println!("\nVQL Summary:");
+        show_principles()?;
+        println!();
+        list_entities()?;
+        println!();
+        list_asset_types()?;
+        println!();
+        list_asset_references()?;
+        return Ok(());
+    }
+    
+    // Check for type-specific list commands
+    match command {
+        "pr()" | "pr" => return show_principles(),
+        "er()" | "er" => return list_entities(),
+        "at()" | "at" => return list_asset_types(),
+        "ar()" | "ar" => return list_asset_references(),
+        _ => {}
+    }
+    
+    // Format: :pr.add(short, long, "guidance")
+    let pr_add_re = Regex::new(r#"^pr\.add\(([^,]+),\s*([^,]+)(?:,\s*"([^"]*)")?\)$"#).unwrap();
+    if let Some(captures) = pr_add_re.captures(command) {
+        let short_name = captures.get(1).unwrap().as_str().trim();
+        let long_name = captures.get(2).unwrap().as_str().trim();
+        let guidance = captures.get(3).map(|m| m.as_str());
+        return add_principle(short_name, long_name, guidance);
+    }
+    
+    // Format: :er.add(short, long)
+    let er_add_re = Regex::new(r"^er\.add\(([^,]+),\s*([^)]+)\)$").unwrap();
+    if let Some(captures) = er_add_re.captures(command) {
+        let short_name = captures.get(1).unwrap().as_str().trim();
+        let long_name = captures.get(2).unwrap().as_str().trim();
+        return add_entity(&[short_name, long_name]);
+    }
+    
+    // Format: :at.add(short, description)
+    let at_add_re = Regex::new(r"^at\.add\(([^,]+),\s*([^)]+)\)$").unwrap();
+    if let Some(captures) = at_add_re.captures(command) {
+        let short_name = captures.get(1).unwrap().as_str().trim();
+        let description = captures.get(2).unwrap().as_str().trim();
+        return add_asset_type(&[short_name, description]);
+    }
+    
+    // Format: :ar.add(short, entity, type, "path")
+    let ar_add_re = Regex::new(r#"^ar\.add\(([^,]+),\s*([^,]+),\s*([^,]+),\s*"([^"]*)"\)$"#).unwrap();
+    if let Some(captures) = ar_add_re.captures(command) {
+        let short_name = captures.get(1).unwrap().as_str().trim();
+        let entity = captures.get(2).unwrap().as_str().trim();
+        let asset_type = captures.get(3).unwrap().as_str().trim();
+        let path = captures.get(4).unwrap().as_str();
+        return add_asset_reference(&[short_name, entity, asset_type, path]);
     }
     
     // Check for asset question format like :uc ? (a) or :uc?(a) - with or without space before/after question mark
@@ -195,6 +270,27 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
     
     // Handle first part as main command
     match main_cmd {
+        "rn" => {
+            // Generic rename: -rn old_name new_name
+            if parts.len() < 3 {
+                return Err(anyhow!("Not enough arguments for rename. Usage: -rn old_name new_name"));
+            }
+            
+            let old_name = parts[1];
+            let new_name = parts[2];
+            
+            return rename_item(old_name, new_name);
+        },
+        "dl" => {
+            // Generic delete: -dl name
+            if parts.len() < 2 {
+                return Err(anyhow!("Not enough arguments for delete. Usage: -dl name"));
+            }
+            
+            let name = parts[1];
+            
+            return delete_item(name);
+        },
         "pr" => {
             // Principle commands
             if parts.len() > 1 {
@@ -234,6 +330,27 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                         let file_path = parts[2];
                         return load_principles_from_md(file_path);
                     },
+                    "rn" => {
+                        // -pr -rn a arch
+                        if parts.len() < 4 {
+                            return Err(anyhow!("Not enough arguments for principle rename. Usage: -pr -rn old_name new_name"));
+                        }
+                        
+                        let old_name = parts[2];
+                        let new_name = parts[3];
+                        
+                        return rename_principle(old_name, new_name);
+                    },
+                    "dl" => {
+                        // -pr -dl arch
+                        if parts.len() < 3 {
+                            return Err(anyhow!("Not enough arguments for principle delete. Usage: -pr -dl name"));
+                        }
+                        
+                        let name = parts[2];
+                        
+                        return delete_principle(name);
+                    },
                     _ => return Err(anyhow!("Unknown principle subcommand: {}", parts[1])),
                 }
             } else {
@@ -264,6 +381,27 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                         
                         return add_entity(&[short_name, long_name]);
                     },
+                    "rn" => {
+                        // -er -rn u usr
+                        if parts.len() < 4 {
+                            return Err(anyhow!("Not enough arguments for entity rename. Usage: -er -rn old_name new_name"));
+                        }
+                        
+                        let old_name = parts[2];
+                        let new_name = parts[3];
+                        
+                        return rename_entity(old_name, new_name);
+                    },
+                    "dl" => {
+                        // -er -dl ex
+                        if parts.len() < 3 {
+                            return Err(anyhow!("Not enough arguments for entity delete. Usage: -er -dl name"));
+                        }
+                        
+                        let name = parts[2];
+                        
+                        return delete_entity(name);
+                    },
                     _ => return Err(anyhow!("Unknown entity subcommand: {}", parts[1])),
                 }
             } else {
@@ -293,6 +431,27 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                         let description = parts[3];
                         
                         return add_asset_type(&[short_name, description]);
+                    },
+                    "rn" => {
+                        // -at -rn c ctrl
+                        if parts.len() < 4 {
+                            return Err(anyhow!("Not enough arguments for asset type rename. Usage: -at -rn old_name new_name"));
+                        }
+                        
+                        let old_name = parts[2];
+                        let new_name = parts[3];
+                        
+                        return rename_asset_type(old_name, new_name);
+                    },
+                    "dl" => {
+                        // -at -dl model
+                        if parts.len() < 3 {
+                            return Err(anyhow!("Not enough arguments for asset type delete. Usage: -at -dl name"));
+                        }
+                        
+                        let name = parts[2];
+                        
+                        return delete_asset_type(name);
                     },
                     _ => return Err(anyhow!("Unknown asset type subcommand: {}", parts[1])),
                 }
@@ -327,6 +486,27 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                             return Err(anyhow!("Not enough arguments for asset reference add. Usage: -ar -add shortName entityType assetType path"));
                         }
                     },
+                    "rn" => {
+                        // -ar -rn uc userctrl
+                        if parts.len() < 4 {
+                            return Err(anyhow!("Not enough arguments for asset reference rename. Usage: -ar -rn old_name new_name"));
+                        }
+                        
+                        let old_name = parts[2];
+                        let new_name = parts[3];
+                        
+                        return rename_asset_reference(old_name, new_name);
+                    },
+                    "dl" => {
+                        // -ar -dl example
+                        if parts.len() < 3 {
+                            return Err(anyhow!("Not enough arguments for asset delete. Usage: -ar -dl name"));
+                        }
+                        
+                        let name = parts[2];
+                        
+                        return delete_asset_reference(name);
+                    },
                     _ => return Err(anyhow!("Unknown asset reference subcommand: {}", parts[1])),
                 }
             } else {
@@ -335,25 +515,25 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
             }
         },
         "st" => {
-            // Store command: st asset_name principle "Review Content" (space-separated only)
+            // Store command: -st asset_name principle "Review Content"
             
             if parts.len() < 4 {
-                return Err(anyhow!("Not enough arguments for store command. Usage: st asset_name principle \"Review Content\""));
+                return Err(anyhow!("Not enough arguments for store command. Usage: -st asset_name principle \"Review Content\""));
             }
             
             let asset_name = parts[1];
             let principle = parts[2];
             
-            // Join all remaining parts together as the analysis content
-            // This handles cases where the analysis text contains spaces
-            let content = parts[3..].join(" ");
+            // Handle quoted content properly - join remaining parts and strip quotes if present
+            let content_raw = parts[3..].join(" ");
+            let content = content_raw.trim_matches('"');
             
-            return store_asset_review(asset_name, principle, &content);
+            return store_asset_review(asset_name, principle, content);
         },
         "se" => {
-            // Set exemplar: se uc t
+            // Set exemplar: -se asset t|f
             if parts.len() < 3 {
-                return Err(anyhow!("Not enough arguments for set exemplar command"));
+                return Err(anyhow!("Not enough arguments for set exemplar command. Usage: -se asset t|f"));
             }
             
             let asset_name = parts[1];
@@ -362,9 +542,9 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
             return set_asset_exemplar(&[asset_name, status]);
         },
         "sc" => {
-            // Set compliance: sc uc a H
+            // Set compliance: -sc asset principle H|M|L
             if parts.len() < 4 {
-                return Err(anyhow!("Not enough arguments for set compliance command"));
+                return Err(anyhow!("Not enough arguments for set compliance command. Usage: -sc asset principle H|M|L"));
             }
             
             let asset_name = parts[1];
@@ -376,8 +556,9 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
         "su" => {
             // Setup VQL: -su "path/to/directory"
             if parts.len() > 1 {
-                // Path is provided
-                let path = parts[1];
+                // Path is provided - handle quoted paths
+                let path_raw = parts[1..].join(" ");
+                let path = path_raw.trim_matches('"');
                 return setup_vql_directory_with_args(&[path]);
             } else {
                 // No path provided, use current directory
@@ -516,14 +697,14 @@ fn show_help() -> Result<()> {
     println!("  {} - Set compliance rating", "-sc".blue());
     
     println!("\n{}", "CLI Command Examples:".bold());
-    println!("  {} - List all principles", "-pr".blue());
-    println!("  {} - Add a new principle", "-pr -add a Architecture \"Architecture Guidelines\"".blue());
-    println!("  {} - Add a new entity", "-er -add u User".blue());
-    println!("  {} - Add a new asset type", "-at -add c Controller".blue());
-    println!("  {} - Add a new asset reference", "-ar -add uc \"C:/Project/UserController.js\"".blue());
-    println!("  {} - Store a review for an asset", "-st uc p \"Performance review content\"".blue());
-    println!("  {} - Set exemplar status", "-se uc t".blue());
-    println!("  {} - Set compliance rating", "-sc uc a H".blue());
+    println!("  {} - List all principles", "vql -pr".blue());
+    println!("  {} - Add a new principle", "vql -pr -add a Architecture \"Architecture Principles\"".blue());
+    println!("  {} - Add a new entity", "vql -er -add u User".blue());
+    println!("  {} - Add a new asset type", "vql -at -add c Controller".blue());
+    println!("  {} - Add a new asset reference", "vql -ar -add uc u c \"C:/Project/UserController.js\"".blue());
+    println!("  {} - Store a review for an asset", "vql -st uc a \"Review Content\"".blue());
+    println!("  {} - Set exemplar status", "vql -se uc t".blue());
+    println!("  {} - Set compliance rating", "vql -sc uc a H".blue());
     
     println!("\n{}", "LLM Commands (colon-prefixed):".bold());
     println!("  {} - Turn VQL mode on/off", ":-vql on|off".blue());
@@ -838,6 +1019,323 @@ fn add_asset_reference(args: &[&str]) -> Result<()> {
         path);
     
     Ok(())
+}
+
+/// Rename a principle
+fn rename_principle(old_name: &str, new_name: &str) -> Result<()> {
+    // Find VQL storage
+    let (vql_dir, mut storage) = find_vql_storage()
+        .context("Failed to find or load VQL storage")?;
+    
+    // Count affected assets before rename
+    let affected_assets: Vec<String> = storage.asset_references
+        .iter()
+        .filter_map(|(asset_name, asset)| {
+            if asset.principle_reviews.contains_key(old_name) {
+                Some(asset_name.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
+    
+    // Rename the principle
+    storage.rename_principle(old_name, new_name)?;
+    
+    // Save storage
+    storage.save(&vql_dir)?;
+    
+    println!("{} Renamed principle '{}' to '{}'", 
+        "SUCCESS:".green().bold(),
+        old_name.blue().bold(),
+        new_name.blue().bold());
+        
+    if !affected_assets.is_empty() {
+        println!("{} Updated principle key in {} asset review(s):", 
+            "CASCADE:".yellow().bold(),
+            affected_assets.len());
+        for asset_name in affected_assets {
+            println!("  - {}", asset_name);
+        }
+    }
+    
+    Ok(())
+}
+
+/// Rename an entity
+fn rename_entity(old_name: &str, new_name: &str) -> Result<()> {
+    // Find VQL storage
+    let (vql_dir, mut storage) = find_vql_storage()
+        .context("Failed to find or load VQL storage")?;
+    
+    // Count affected assets before rename
+    let affected_assets: Vec<String> = storage.asset_references
+        .iter()
+        .filter_map(|(asset_name, asset)| {
+            if asset.entity == old_name {
+                Some(asset_name.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
+    
+    // Rename the entity
+    storage.rename_entity(old_name, new_name)?;
+    
+    // Save storage
+    storage.save(&vql_dir)?;
+    
+    println!("{} Renamed entity '{}' to '{}'", 
+        "SUCCESS:".green().bold(),
+        old_name.blue().bold(),
+        new_name.blue().bold());
+        
+    if !affected_assets.is_empty() {
+        println!("{} Updated entity reference in {} asset(s):", 
+            "CASCADE:".yellow().bold(),
+            affected_assets.len());
+        for asset_name in affected_assets {
+            println!("  - {}", asset_name);
+        }
+    }
+    
+    Ok(())
+}
+
+/// Rename an asset type
+fn rename_asset_type(old_name: &str, new_name: &str) -> Result<()> {
+    // Find VQL storage
+    let (vql_dir, mut storage) = find_vql_storage()
+        .context("Failed to find or load VQL storage")?;
+    
+    // Count affected assets before rename
+    let affected_assets: Vec<String> = storage.asset_references
+        .iter()
+        .filter_map(|(asset_name, asset)| {
+            if asset.asset_type == old_name {
+                Some(asset_name.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
+    
+    // Rename the asset type
+    storage.rename_asset_type(old_name, new_name)?;
+    
+    // Save storage
+    storage.save(&vql_dir)?;
+    
+    println!("{} Renamed asset type '{}' to '{}'", 
+        "SUCCESS:".green().bold(),
+        old_name.blue().bold(),
+        new_name.blue().bold());
+        
+    if !affected_assets.is_empty() {
+        println!("{} Updated asset type reference in {} asset(s):", 
+            "CASCADE:".yellow().bold(),
+            affected_assets.len());
+        for asset_name in affected_assets {
+            println!("  - {}", asset_name);
+        }
+    }
+    
+    Ok(())
+}
+
+/// Rename an asset reference
+fn rename_asset_reference(old_name: &str, new_name: &str) -> Result<()> {
+    // Find VQL storage
+    let (vql_dir, mut storage) = find_vql_storage()
+        .context("Failed to find or load VQL storage")?;
+    
+    // Rename the asset reference
+    storage.rename_asset_reference(old_name, new_name)?;
+    
+    // Save storage
+    storage.save(&vql_dir)?;
+    
+    println!("{} Renamed asset '{}' to '{}'", 
+        "SUCCESS:".green().bold(),
+        old_name.blue().bold(),
+        new_name.blue().bold());
+    
+    Ok(())
+}
+
+/// Delete a principle
+fn delete_principle(name: &str) -> Result<()> {
+    // Find VQL storage
+    let (vql_dir, mut storage) = find_vql_storage()
+        .context("Failed to find or load VQL storage")?;
+    
+    // Count affected assets before deletion
+    let affected_assets: Vec<(String, usize)> = storage.asset_references
+        .iter()
+        .filter_map(|(asset_name, asset)| {
+            if asset.principle_reviews.contains_key(name) {
+                Some((asset_name.clone(), asset.principle_reviews.len()))
+            } else {
+                None
+            }
+        })
+        .collect();
+    
+    // Delete the principle
+    storage.delete_principle(name)?;
+    
+    // Save storage
+    storage.save(&vql_dir)?;
+    
+    println!("{} Deleted principle '{}'", 
+        "SUCCESS:".green().bold(),
+        name.blue().bold());
+    
+    if !affected_assets.is_empty() {
+        println!("{} Removed principle '{}' from {} asset(s):", 
+            "CASCADE:".yellow().bold(),
+            name,
+            affected_assets.len());
+        for (asset_name, _) in affected_assets {
+            println!("  - {}", asset_name);
+        }
+    }
+    
+    Ok(())
+}
+
+/// Delete an entity
+fn delete_entity(name: &str) -> Result<()> {
+    // Find VQL storage
+    let (vql_dir, mut storage) = find_vql_storage()
+        .context("Failed to find or load VQL storage")?;
+    
+    // Delete the entity (will fail if assets exist)
+    storage.delete_entity(name)?;
+    
+    // Save storage
+    storage.save(&vql_dir)?;
+    
+    println!("{} Deleted entity '{}'", 
+        "SUCCESS:".green().bold(),
+        name.blue().bold());
+    
+    Ok(())
+}
+
+/// Delete an asset type
+fn delete_asset_type(name: &str) -> Result<()> {
+    // Find VQL storage
+    let (vql_dir, mut storage) = find_vql_storage()
+        .context("Failed to find or load VQL storage")?;
+    
+    // Delete the asset type (will fail if assets exist)
+    storage.delete_asset_type(name)?;
+    
+    // Save storage
+    storage.save(&vql_dir)?;
+    
+    println!("{} Deleted asset type '{}'", 
+        "SUCCESS:".green().bold(),
+        name.blue().bold());
+    
+    Ok(())
+}
+
+/// Delete an asset reference
+fn delete_asset_reference(name: &str) -> Result<()> {
+    // Find VQL storage
+    let (vql_dir, mut storage) = find_vql_storage()
+        .context("Failed to find or load VQL storage")?;
+    
+    // Get review count before deletion for feedback
+    let review_count = storage.asset_references
+        .get(name)
+        .map(|asset| asset.principle_reviews.len())
+        .unwrap_or(0);
+    
+    // Delete the asset
+    storage.delete_asset_reference(name)?;
+    
+    // Save storage
+    storage.save(&vql_dir)?;
+    
+    println!("{} Deleted asset '{}'", 
+        "SUCCESS:".green().bold(),
+        name.blue().bold());
+        
+    if review_count > 0 {
+        println!("{} Removed {} review(s) with the asset", 
+            "CASCADE:".yellow().bold(),
+            review_count);
+    }
+    
+    Ok(())
+}
+
+/// Generic rename handler that determines item type automatically
+fn rename_item(old_name: &str, new_name: &str) -> Result<()> {
+    // Find VQL storage
+    let (vql_dir, mut storage) = find_vql_storage()
+        .context("Failed to find or load VQL storage")?;
+    
+    // Determine item type
+    let item_type = storage.find_item_type(old_name)
+        .ok_or_else(|| anyhow!("Item '{}' not found in any category", old_name))?;
+    
+    // Delegate to specific rename function based on type
+    match item_type {
+        "principle" => {
+            drop(storage);
+            rename_principle(old_name, new_name)
+        },
+        "entity" => {
+            drop(storage);
+            rename_entity(old_name, new_name)
+        },
+        "asset_type" => {
+            drop(storage);
+            rename_asset_type(old_name, new_name)
+        },
+        "asset" => {
+            drop(storage);
+            rename_asset_reference(old_name, new_name)
+        },
+        _ => Err(anyhow!("Unknown item type"))
+    }
+}
+
+/// Generic delete handler that determines item type automatically
+fn delete_item(name: &str) -> Result<()> {
+    // Find VQL storage
+    let (vql_dir, mut storage) = find_vql_storage()
+        .context("Failed to find or load VQL storage")?;
+    
+    // Determine item type
+    let item_type = storage.find_item_type(name)
+        .ok_or_else(|| anyhow!("Item '{}' not found in any category", name))?;
+    
+    // Delegate to specific delete function based on type
+    match item_type {
+        "principle" => {
+            drop(storage);
+            delete_principle(name)
+        },
+        "entity" => {
+            drop(storage);
+            delete_entity(name)
+        },
+        "asset_type" => {
+            drop(storage);
+            delete_asset_type(name)
+        },
+        "asset" => {
+            drop(storage);
+            delete_asset_reference(name)
+        },
+        _ => Err(anyhow!("Unknown item type"))
+    }
 }
 
 /// List all asset references
@@ -1265,6 +1763,16 @@ fn handle_vql_mode(_enabled: bool) -> Result<()> {
     Ok(())
 }
 
+/// Handle interface mode switching
+fn handle_interface_mode(mode: &str) -> Result<()> {
+    match mode {
+        "mcp" => println!("Switched to MCP interface mode"),
+        "cli" => println!("Switched to CLI interface mode"),
+        _ => return Err(anyhow!("Unknown interface mode: {}", mode)),
+    }
+    Ok(())
+}
+
 /// Handle asset store command (LLM format with commas)
 fn handle_asset_store(asset_name: &str, args: &str) -> Result<()> {
     // Parse args: principle, content (with commas, as per VQL Prompt file)
@@ -1287,34 +1795,198 @@ fn handle_asset_store(asset_name: &str, args: &str) -> Result<()> {
     store_asset_review(asset_name, principle, &content)
 }
 
+/// Parse and validate a comma-separated list of principles
+fn parse_principle_list(args: &str, storage: &JsonStorage) -> Result<Vec<String>> {
+    // Handle wildcard for all principles
+    if args.trim() == "*" || args.trim() == "-pr" {
+        return Ok(storage.principles.keys().cloned().collect());
+    }
+    
+    // Parse comma-separated list
+    let requested: Vec<&str> = args.split(',')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .collect();
+    
+    // Remove duplicates while preserving order
+    let mut seen = std::collections::HashSet::new();
+    let mut unique_principles = Vec::new();
+    
+    for principle in requested {
+        // Validate that the principle exists
+        if !storage.principles.contains_key(principle) {
+            return Err(anyhow!("Unknown principle: '{}'. Available principles: {}", 
+                principle,
+                storage.principles.keys().cloned().collect::<Vec<_>>().join(", ")
+            ));
+        }
+        
+        // Add only if not seen before
+        if seen.insert(principle.to_string()) {
+            unique_principles.push(principle.to_string());
+        }
+    }
+    
+    if unique_principles.is_empty() {
+        return Err(anyhow!("No valid principles specified"));
+    }
+    
+    Ok(unique_principles)
+}
+
 /// Handle asset review command (LLM-only)
 fn handle_asset_review(asset_name: &str, args: &str) -> Result<()> {
-    // This is an LLM-only command
-    println!("LLM review request for asset: {} with args: {}", asset_name, args);
+    // Load storage to validate asset and principles
+    let (_vql_dir, storage) = find_vql_storage()
+        .context("Failed to find or load VQL storage")?;
+    
+    // Validate asset exists
+    if !storage.asset_references.contains_key(asset_name) {
+        return Err(anyhow!("Unknown asset: '{}'. Available assets: {}", 
+            asset_name,
+            storage.asset_references.keys().cloned().collect::<Vec<_>>().join(", ")
+        ));
+    }
+    
+    // Parse and validate principles
+    let principles = parse_principle_list(args, &storage)?;
+    
+    // Get asset details
+    let asset = &storage.asset_references[asset_name];
+    
+    println!("LLM Review Request:");
+    println!("Asset: {} ({})", asset_name, asset.path);
+    println!("Principles to review: {}", principles.join(", "));
     
     // Return review instructions
     println!("\nReview Instructions:");
-    println!("1. Read asset from: {}", asset_name);
-    println!("2. Review for principles: {}", args);
-    println!("3. Rate each principle (H/M/L)");
-    println!("4. Provide analysis");
-    println!("5. Store results using :asset.st(principle, rating, analysis)");
+    println!("1. Read asset from: {}", asset.path);
+    println!("2. Review for principles: {}", principles.join(", "));
+    println!("3. For each principle:");
+    for principle in &principles {
+        if let Some(p) = storage.principles.get(principle) {
+            println!("   - {} ({}): {}", 
+                principle, 
+                p.long_name,
+                p.guidance.as_ref().unwrap_or(&"No guidance".to_string())
+            );
+        }
+    }
+    println!("4. Rate each principle (H/M/L)");
+    println!("5. Provide detailed analysis");
+    println!("6. Store results using :{}.st({}, \"Review with rating...\")", asset_name, principles[0]);
     
     Ok(())
 }
 
 /// Handle asset refactor command (LLM-only)
 fn handle_asset_refactor(asset_name: &str, args: &str) -> Result<()> {
-    // This is an LLM-only command
-    println!("LLM refactor request for asset: {} with args: {}", asset_name, args);
+    // Load storage to validate asset and principles
+    let (_vql_dir, storage) = find_vql_storage()
+        .context("Failed to find or load VQL storage")?;
+    
+    // Parse the refactor arguments - could be principles, or principles + reference assets
+    let (principles, reference_assets) = if args.contains(',') {
+        // Split by comma to analyze the parts
+        let parts: Vec<&str> = args.split(',').map(|s| s.trim()).collect();
+        
+        // Find where principles end and reference assets begin
+        let mut principle_parts = Vec::new();
+        let mut reference_parts = Vec::new();
+        let mut found_reference = false;
+        
+        for part in parts {
+            // Check if this is an asset reference (exists in storage)
+            if !found_reference && (part == "-pr" || storage.principles.contains_key(part)) {
+                principle_parts.push(part);
+            } else {
+                found_reference = true;
+                reference_parts.push(part);
+            }
+        }
+        
+        // Parse principles
+        let principles = if principle_parts.is_empty() {
+            vec![]
+        } else {
+            parse_principle_list(&principle_parts.join(","), &storage)?
+        };
+        
+        // Collect reference assets
+        let references = if reference_parts.is_empty() {
+            None
+        } else {
+            Some(reference_parts.into_iter().map(|s| s.to_string()).collect::<Vec<_>>())
+        };
+        
+        (principles, references)
+    } else if !args.contains('*') && !args.contains("-pr") && storage.asset_references.contains_key(args.trim()) {
+        // Single asset reference - refactor using another asset as reference
+        let ref_asset = args.trim();
+        // Get all principles from the reference asset's reviews
+        let principles = if let Some(ref_asset_data) = storage.asset_references.get(ref_asset) {
+            ref_asset_data.principle_reviews.keys().cloned().collect()
+        } else {
+            vec![]
+        };
+        (principles, Some(vec![ref_asset.to_string()]))
+    } else {
+        // Standard principle list (including -pr)
+        (parse_principle_list(args, &storage)?, None)
+    };
+    
+    // Validate asset exists
+    if !storage.asset_references.contains_key(asset_name) {
+        return Err(anyhow!("Unknown asset: '{}'. Available assets: {}", 
+            asset_name,
+            storage.asset_references.keys().cloned().collect::<Vec<_>>().join(", ")
+        ));
+    }
+    
+    // Get asset details
+    let asset = &storage.asset_references[asset_name];
+    
+    println!("LLM Refactor Request:");
+    println!("Asset: {} ({})", asset_name, asset.path);
+    
+    if let Some(ref ref_assets) = reference_assets {
+        println!("Using reference assets: {}", ref_assets.join(", "));
+        for ref_asset in ref_assets {
+            if let Some(ref_data) = storage.asset_references.get(ref_asset) {
+                println!("  - {} ({})", ref_asset, ref_data.path);
+            }
+        }
+        if !principles.is_empty() {
+            println!("Principles to refactor for: {}", principles.join(", "));
+        }
+    } else {
+        println!("Principles to refactor for: {}", principles.join(", "));
+    }
     
     // Return refactor instructions
     println!("\nRefactor Instructions:");
-    println!("1. Read asset from: {}", asset_name);
-    println!("2. Consider principles: {}", args);
-    println!("3. Suggest refactorings");
-    println!("4. Implement refactorings");
-    println!("5. Store results using :asset.st(principle, rating, analysis)");
+    println!("1. Read asset from: {}", asset.path);
+    
+    if reference_assets.is_some() {
+        println!("2. Read reference assets and analyze their patterns");
+        println!("3. Apply similar patterns to improve the target asset");
+    } else {
+        println!("2. Consider principles: {}", principles.join(", "));
+        for principle in &principles {
+            if let Some(p) = storage.principles.get(principle) {
+                println!("   - {} ({}): {}", 
+                    principle, 
+                    p.long_name,
+                    p.guidance.as_ref().unwrap_or(&"No guidance".to_string())
+                );
+            }
+        }
+        println!("3. Identify improvements for each principle");
+    }
+    
+    println!("4. Apply refactoring changes");
+    println!("5. MANDATORY: Review refactored code and update all reviews");
+    println!("6. Store updated reviews with 'After refactoring:' prefix");
     
     Ok(())
 }
@@ -1352,32 +2024,94 @@ fn handle_asset_set_compliance(asset_name: &str, args: &str) -> Result<()> {
 
 /// Handle global review command (LLM-only)
 fn handle_global_review(args: &str) -> Result<()> {
-    // This is an LLM-only command
-    println!("LLM global review request with args: {}", args);
+    // Load storage to validate principles
+    let (_vql_dir, storage) = find_vql_storage()
+        .context("Failed to find or load VQL storage")?;
+    
+    // Parse and validate principles
+    let principles = parse_principle_list(args, &storage)?;
+    
+    // Get all assets
+    let assets: Vec<String> = storage.asset_references.keys().cloned().collect();
+    
+    if assets.is_empty() {
+        return Err(anyhow!("No assets found in the project"));
+    }
+    
+    println!("LLM Global Review Request:");
+    println!("Total assets: {}", assets.len());
+    println!("Principles to review: {}", principles.join(", "));
     
     // Return review instructions
     println!("\nGlobal Review Instructions:");
-    println!("1. List all asset references");
-    println!("2. Review assets for principles: {}", args);
+    println!("1. Review all {} assets:", assets.len());
+    for asset_name in &assets {
+        if let Some(asset) = storage.asset_references.get(asset_name) {
+            println!("   - {} ({})", asset_name, asset.path);
+        }
+    }
+    println!("2. For each asset, review principles: {}", principles.join(", "));
     println!("3. Rate each principle (H/M/L)");
-    println!("4. Provide analysis");
-    println!("5. Store results using :asset.st(principle, rating, analysis)");
+    println!("4. Provide detailed analysis");
+    println!("5. Store results using :[asset].st([principle], \"Review with rating...\")");
+    println!("\nTotal reviews to perform: {} assets × {} principles = {} reviews", 
+        assets.len(), 
+        principles.len(), 
+        assets.len() * principles.len()
+    );
     
     Ok(())
 }
 
 /// Handle global refactor command (LLM-only)
 fn handle_global_refactor(args: &str) -> Result<()> {
-    // This is an LLM-only command
-    println!("LLM global refactor request with args: {}", args);
+    // Load storage to validate principles
+    let (_vql_dir, storage) = find_vql_storage()
+        .context("Failed to find or load VQL storage")?;
+    
+    // Parse and validate principles
+    let principles = parse_principle_list(args, &storage)?;
+    
+    // Get all assets
+    let assets: Vec<String> = storage.asset_references.keys().cloned().collect();
+    
+    if assets.is_empty() {
+        return Err(anyhow!("No assets found in the project"));
+    }
+    
+    println!("LLM Global Refactor Request:");
+    println!("Total assets: {}", assets.len());
+    println!("Principles to refactor for: {}", principles.join(", "));
     
     // Return refactor instructions
     println!("\nGlobal Refactor Instructions:");
-    println!("1. List all asset references");
-    println!("2. Consider principles: {}", args);
-    println!("3. Suggest refactorings");
-    println!("4. Implement refactorings");
-    println!("5. Store results using :asset.st(principle, rating, analysis)");
+    println!("1. Process all {} assets:", assets.len());
+    for asset_name in &assets {
+        if let Some(asset) = storage.asset_references.get(asset_name) {
+            println!("   - {} ({})", asset_name, asset.path);
+        }
+    }
+    println!("2. For each asset:");
+    println!("   a. Read the current implementation");
+    println!("   b. Consider principles: {}", principles.join(", "));
+    for principle in &principles {
+        if let Some(p) = storage.principles.get(principle) {
+            println!("      - {} ({}): {}", 
+                principle, 
+                p.long_name,
+                p.guidance.as_ref().unwrap_or(&"No guidance".to_string())
+            );
+        }
+    }
+    println!("   c. Identify improvements for each principle");
+    println!("   d. Apply refactoring changes");
+    println!("   e. MANDATORY: Review refactored code and update all reviews");
+    println!("3. Store updated reviews with 'After refactoring:' prefix");
+    println!("\nTotal refactorings: {} assets × {} principles = {} potential improvements", 
+        assets.len(), 
+        principles.len(), 
+        assets.len() * principles.len()
+    );
     
     Ok(())
 }
