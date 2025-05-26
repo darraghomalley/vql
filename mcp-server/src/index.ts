@@ -87,6 +87,7 @@ class VQLMCPServer {
       isExemplar?: boolean;
       level?: 'H' | 'M' | 'L';
       referenceAsset?: string;
+      referenceAssets?: string[];
     }
     // Handle list tools request
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -480,6 +481,104 @@ class VQLMCPServer {
             required: ['asset', 'referenceAsset'],
           },
         },
+        {
+          name: 'refactor_asset_principles_with_references',
+          description: 'Refactor an asset based on specific principles using reference assets',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              asset: {
+                type: 'string',
+                description: 'Asset identifier to refactor',
+              },
+              principles: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                },
+                description: 'Array of principle identifiers to refactor against',
+              },
+              referenceAssets: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                },
+                description: 'Array of reference asset identifiers to use as examples',
+              },
+            },
+            required: ['asset', 'principles', 'referenceAssets'],
+          },
+        },
+        {
+          name: 'refactor_asset_all_principles_with_references',
+          description: 'Refactor an asset based on all principles using reference assets',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              asset: {
+                type: 'string',
+                description: 'Asset identifier to refactor',
+              },
+              referenceAssets: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                },
+                description: 'Array of reference asset identifiers to use as examples',
+              },
+            },
+            required: ['asset', 'referenceAssets'],
+          },
+        },
+        {
+          name: 'refactor_asset_principles_with_references',
+          description: 'Refactor an asset based on specific principles using reference assets',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              asset: {
+                type: 'string',
+                description: 'Asset identifier to refactor',
+              },
+              principles: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                },
+                description: 'Array of principle identifiers to refactor against',
+              },
+              referenceAssets: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                },
+                description: 'Array of reference asset identifiers to use as examples',
+              },
+            },
+            required: ['asset', 'principles', 'referenceAssets'],
+          },
+        },
+        {
+          name: 'refactor_asset_all_principles_with_references',
+          description: 'Refactor an asset based on all principles using reference assets',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              asset: {
+                type: 'string',
+                description: 'Asset identifier to refactor',
+              },
+              referenceAssets: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                },
+                description: 'Array of reference asset identifiers to use as examples',
+              },
+            },
+            required: ['asset', 'referenceAssets'],
+          },
+        },
 
         // Batch Operations
         {
@@ -730,7 +829,9 @@ class VQLMCPServer {
    - Generate a new review reflecting the post-refactoring state
    - Store using 'vql -st ${typedArgs.asset} [principle] "[updated review with new rating]"'
    - Include phrases like "After refactoring: HIGH compliance" in the review
-7. The refactoring is NOT complete until all reviews are updated`
+7. The refactoring is NOT complete until all reviews are updated
+
+Note: For commands using "-pr" (all principles), this is equivalent to specifying all available principles.`
               }]
             };
 
@@ -771,6 +872,47 @@ class VQLMCPServer {
 7. The refactoring is NOT complete until reviews are updated`
               }]
             };
+
+          case 'refactor_asset_principles_with_references':
+            return {
+              content: [{
+                type: 'text',
+                text: `To refactor asset '${typedArgs.asset}' based on principles ${(typedArgs.principles || []).join(', ')} using references ${(typedArgs.referenceAssets || []).join(', ')}:
+1. Get principle definitions for: ${(typedArgs.principles || []).join(', ')}
+2. Run 'vql -ar' to get details for target and reference assets
+3. Read all asset files (target: ${typedArgs.asset}, references: ${(typedArgs.referenceAssets || []).join(', ')})
+4. For each reference asset, identify patterns that exemplify the specified principles
+5. Analyze target asset against specified principles
+6. Apply patterns from reference assets to improve compliance with specified principles
+7. MANDATORY: Review the refactored asset against the specified principles:
+   - For each principle in [${(typedArgs.principles || []).join(', ')}], analyze the refactored code
+   - Generate new reviews reflecting post-refactoring state
+   - Store using 'vql -st ${typedArgs.asset} [principle] "[updated review with new rating]"'
+   - Include phrases like "After refactoring using patterns from ${(typedArgs.referenceAssets || []).join(', ')}: HIGH compliance"
+8. The refactoring is NOT complete until all specified principle reviews are updated`
+              }]
+            };
+
+          case 'refactor_asset_all_principles_with_references':
+            return {
+              content: [{
+                type: 'text',
+                text: `To refactor asset '${typedArgs.asset}' based on all principles using references ${(typedArgs.referenceAssets || []).join(', ')}:
+1. Run 'vql -pr' to get all principles
+2. Run 'vql -ar' to get details for target and reference assets
+3. Read all asset files (target: ${typedArgs.asset}, references: ${(typedArgs.referenceAssets || []).join(', ')})
+4. For each reference asset, identify patterns that exemplify various principles
+5. Analyze target asset against all principles
+6. Apply patterns from reference assets to improve overall compliance
+7. MANDATORY: Review the refactored asset against all principles:
+   - For each principle, analyze the refactored code
+   - Generate new reviews reflecting post-refactoring state
+   - Store using 'vql -st ${typedArgs.asset} [principle] "[updated review with new rating]"'
+   - Include phrases like "After refactoring using patterns from ${(typedArgs.referenceAssets || []).join(', ')}: HIGH compliance"
+8. The refactoring is NOT complete until all reviews are updated`
+              }]
+            };
+
 
           // Batch Operations
           case 'review_all_assets_all_principles':
@@ -817,7 +959,9 @@ class VQLMCPServer {
    - Generate new reviews reflecting post-refactoring state
    - Store using 'vql -st [asset] [principle] "[updated review]"'
    - Include phrases like "After refactoring: HIGH compliance"
-5. The refactoring process is NOT complete until all reviews are updated`
+5. The refactoring process is NOT complete until all reviews are updated
+
+Note: This batch operation uses "-pr" (all principles) syntax for comprehensive refactoring.`
               }]
             };
 

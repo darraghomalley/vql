@@ -12,6 +12,74 @@ VQL manages a lightweight knowledge base that persists across AI sessions:
 - **Asset References**: Specific files tracked with their entity/type relationships
 - **Asset Reviews**: Principle-based evaluations with compliance ratings (High/Medium/Low)
 
+## Recent Updates
+
+### Command Syntax Evolution
+The latest version replaces the ambiguous `*` wildcard with the clearer `-pr` token:
+- **Old**: `:uc.rv(*)` - unclear if `*` means all principles or all assets
+- **New**: `:uc.rv(-pr)` - clearly means "all principles" following VQL's hyphen convention
+
+### Reference-Based Refactoring
+Refactor commands now support using other assets as references:
+- `:uc.rf(-pr, pc)` - refactor uc using all principles with pc as an example
+- `:uc.rf(a,s,pc,tm)` - refactor uc for principles a,s using patterns from pc and tm
+
+This enables pattern-based improvements where exemplar implementations guide refactoring.
+
+## Design Philosophy
+
+### The Hyphen Convention
+
+VQL uses a hyphen prefix (`-`) for all system commands to create distinct namespaces:
+- **System commands**: `-pr`, `-ar`, `-su`, `-st` etc. (reserved by VQL)
+- **User identifiers**: `a`, `uc`, `um` etc. (freely chosen by users)
+
+This design allows users to name their principles, assets, and entities anything without conflicting with VQL commands. For example, you could have a principle named "add" and safely use `vql add?` to query it, while `vql -pr -add` remains the command to add principles.
+
+### Unified Namespace
+
+All user-defined short names (principles, entities, asset types, and assets) share a single namespace and must be unique. This ensures:
+- No ambiguity when referencing items in commands or reviews
+- Clear mental model - each short name identifies exactly one thing
+- Clean syntax like `:uc.rf(um, a)` where types are inferred from context
+
+### Command Syntax Patterns
+
+VQL supports two distinct command interfaces with different design patterns:
+
+#### CLI Syntax (Procedural)
+Uses procedural syntax where commands take parameters:
+```bash
+vql -st uc "Review Content"  # store(asset, content)
+vql -se uc true              # setExemplar(asset, status)
+```
+
+#### LLM Syntax (Object-Oriented)
+Uses object-oriented syntax where assets are objects with methods:
+```bash
+:uc.st(a, "Review Content")  # asset.store(principle, content)
+:uc.se(true)                 # asset.setExemplar(status)
+```
+
+Both interfaces have the same parameter count but organize them differently - CLI uses procedural patterns while LLM uses asset-centric method calls.
+
+## Canonical Commands Reference
+
+The `canonicalCmds.json` file serves as the **authoritative specification** for all VQL commands. This file is critical because:
+
+- **Single Source of Truth**: Defines exact syntax for both CLI and LLM interfaces
+- **Implementation Guide**: Used to ensure CLI and MCP server stay synchronized
+- **Documentation**: Provides examples and placeholder patterns for all operations
+- **Quality Assurance**: Helps identify inconsistencies and missing features
+
+The canonical format includes:
+- **ACTION**: Human-readable description of what the command does
+- **CLI**: Command-line syntax with examples
+- **LLMP**: LLM placeholder syntax with parameter descriptions
+- **LLME**: LLM example syntax with concrete values
+
+Any changes to VQL commands should first be reflected in the canonical file to maintain consistency across all interfaces.
+
 ## Architecture
 
 VQL uses a dual-interface architecture for maximum flexibility:
@@ -27,6 +95,7 @@ VQL uses a dual-interface architecture for maximum flexibility:
 - Wraps CLI commands for structured AI assistant access
 - Provides type-safe tools for Claude and other MCP-compatible assistants
 - Enables seamless VQL integration in AI coding sessions
+- Supports new refactoring tools with reference assets for pattern-based improvements
 
 The MCP server acts as a thin wrapper around the CLI, ensuring both interfaces stay in sync while providing the best experience for each use case.
 
@@ -39,6 +108,8 @@ The MCP server acts as a thin wrapper around the CLI, ensuring both interfaces s
 - **Exemplar Marking**: Identify best-practice implementations
 - **Compliance Ratings**: Track improvement with High/Medium/Low ratings
 - **Guided Refactoring**: AI workflows that improve code and update reviews
+- **Reference-Based Refactoring**: Use exemplar assets as patterns for improvements
+- **Flexible Principle Selection**: Use `-pr` for all principles or specify individual ones
 - **Dual Interface**: Use via CLI or MCP-enabled AI assistants
 
 ## Installation
@@ -181,6 +252,11 @@ When the MCP server is configured, AI assistants use structured tools:
 
 The MCP interface provides type safety, better error handling, and direct integration with Claude's tool system.
 
+#### New in Latest Release:
+- **`-pr` token**: Use `-pr` instead of `*` to mean "all principles" in review/refactor commands
+- **Reference-based refactoring**: Specify exemplar assets to guide refactoring patterns
+- **Enhanced MCP tools**: New tools for refactoring with multiple reference assets
+
 ### Method 2: LLM Command Syntax
 
 AI assistants can also use a special command syntax:
@@ -195,12 +271,16 @@ AI assistants can also use a special command syntax:
 :uc?(a,s)                # Query specific reviews
 
 # AI Workflows (multi-step operations)
-:uc.rv(*)                # Review asset against all principles
+:-rv(-pr)                # Review all assets against all principles
+:-rv(a,s)                # Review all assets against specific principles
+:uc.rv(-pr)              # Review asset against all principles
 :uc.rv(a,s)              # Review asset against specific principles
-:uc.rf(*)                # Refactor asset for all principles
-:uc.rf(a,s)              # Refactor asset for specific principles
-:-rv(*)                  # Review all assets
+:-rf(-pr)                # Refactor all assets for all principles
 :-rf(a,s)                # Refactor all assets for specific principles
+:uc.rf(-pr)              # Refactor asset for all principles
+:uc.rf(a,s)              # Refactor asset for specific principles
+:uc.rf(-pr, pc)          # Refactor asset using all principles with pc as reference
+:uc.rf(a,s,pc,tm)        # Refactor asset for principles a,s with pc,tm as references
 ```
 
 ### Important: Post-Refactoring Reviews

@@ -27,6 +27,33 @@ IMPORTANT: VQL mode is OFF by default at the start of every session.
   3. The ONLY VQL-related command you should recognize in this state is ":vql on" OR ":-vql on"
   4. Respond to all other VQL commands with a reminder that VQL mode is off
 
+### Canonical Commands Review Complete (Session Summary):
+
+#### What We Accomplished:
+1. **Migrated** VQL Prompts.txt to structured `canonicalCmds.json` format
+2. **Consolidated** verbose command specifications into elegant unified syntax
+3. **Fixed** critical syntax errors: missing parentheses, extra quotes, parameter naming
+4. **Documented** command pattern differences between CLI (procedural) and LLM (object-oriented)
+5. **Established** canonicalCmds.json as single source of truth in README
+
+#### Key Pattern Discoveries:
+- **CLI**: `vql -st uc "content"` (procedural: command takes asset + content)
+- **LLM**: `:uc.st(a, "content")` (object-oriented: asset.method(principle, content))
+- Both have same parameter count, different organization patterns
+- Review/refactor commands now use unified `[using...]` syntax for principles/exemplars
+
+#### Next Steps for CLI Conformance:
+1. **Test CLI against canonical** - Run through each canonicalCmds.json entry to verify implementation
+2. **Fix command discrepancies** - Address any CLI commands that don't match canonical specification
+3. **Implement missing features** - Add any canonical commands not yet implemented in CLI
+4. **Validate parameter patterns** - Ensure CLI procedural syntax matches documented examples
+5. **Update MCP server** - Align MCP tools with finalized canonical specification
+
+#### Files Updated:
+- ✅ Created `canonicalCmds.json` (authoritative command reference)
+- ✅ Updated `README.md` (documented canonical importance + syntax patterns)  
+- ✅ Deleted `VQL Prompts.txt` (eliminated redundant reference)
+
 ### Command Format Recognition (ONLY WHEN VQL MODE IS ON):
 - You MUST recognize and process both spaced and non-spaced command formats:
   - Both `:uc?` and `:uc ?` are valid
