@@ -11,9 +11,16 @@ pub fn find_vql_root() -> Option<PathBuf> {
     let mut current_dir = env::current_dir().ok()?;
     
     loop {
-        let vql_dir = current_dir.join("vql");
-        if vql_dir.is_dir() {
-            return Some(vql_dir);
+        // Check for VQL directory (case insensitive on some platforms)
+        let vql_dir_lowercase = current_dir.join("vql");
+        let vql_dir_uppercase = current_dir.join("VQL");
+        
+        if vql_dir_lowercase.is_dir() {
+            return Some(vql_dir_lowercase);
+        }
+        
+        if vql_dir_uppercase.is_dir() {
+            return Some(vql_dir_uppercase);
         }
         
         // Handle platform-specific root directories
@@ -35,11 +42,11 @@ pub fn create_vql_directory(path: &str) -> Result<PathBuf> {
     let target_path = Path::new(path).canonicalize()
         .context(format!("Failed to resolve path: {}", path))?;
     
-    let vql_dir = target_path.join("vql");
+    let vql_dir = target_path.join("VQL");
     
-    // Create vql directory
+    // Create VQL directory
     fs::create_dir_all(&vql_dir)
-        .context("Failed to create vql directory")?;
+        .context("Failed to create VQL directory")?;
     
     // Create initial VQL reference files
     for short_name in &["m", "c", "u"] {

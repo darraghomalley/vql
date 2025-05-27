@@ -51,16 +51,23 @@ class VQLMCPServer {
 
   private async readVQLStorage(): Promise<any> {
     try {
-      // Find VQL directory by looking for VQL/vql_storage.json
-      const { stdout } = await execAsync('find . -name "vql_storage.json" -path "*/VQL/*" | head -1');
-      const storagePath = stdout.trim();
+      // First try to find VQL directory (case insensitive)
+      const { stdout: findResult } = await execAsync('find . -maxdepth 3 -type d \\( -name "vql" -o -name "VQL" \\) 2>/dev/null | head -1');
+      const vqlDir = findResult.trim();
       
-      if (!storagePath) {
-        throw new Error('VQL storage file not found. Run vql -su first.');
+      if (!vqlDir) {
+        throw new Error('VQL directory not found. Run vql -su first.');
       }
-
-      const content = await readFile(storagePath, 'utf-8');
-      return JSON.parse(content);
+      
+      // Look for storage file in the VQL directory
+      const storagePath = join(vqlDir, 'vql_storage.json');
+      
+      try {
+        const content = await readFile(storagePath, 'utf-8');
+        return JSON.parse(content);
+      } catch (readError) {
+        throw new Error(`VQL storage file not found at ${storagePath}. Run vql -su first.`);
+      }
     } catch (error: any) {
       throw new McpError(
         ErrorCode.InternalError,

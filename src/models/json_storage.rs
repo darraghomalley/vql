@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Result, Context};
 use serde::{Serialize, Deserialize};
 use chrono::Utc;
+use crate::utils::path::{PathResolver, find_workspace_root};
 
 /// Represents a command in the VQL system
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -175,6 +176,39 @@ impl JsonStorage {
         }
     }
     
+    /// Migrate all asset paths from absolute to relative
+    pub fn migrate_paths_to_relative(&mut self) -> Result<()> {
+        // Get workspace root - must have VQL directory
+        let workspace_root = find_workspace_root()
+            .context("Cannot migrate paths without VQL directory")?;
+        let path_resolver = PathResolver::with_root(workspace_root);
+        
+        // Iterate through all asset references and convert paths
+        for asset in self.asset_references.values_mut() {
+            // Skip if already relative
+            if !Path::new(&asset.path).is_absolute() {
+                continue;
+            }
+            
+            // Try to convert to relative
+            match path_resolver.to_relative(&asset.path) {
+                Ok(relative_path) => {
+                    asset.path = relative_path;
+                    asset.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+                }
+                Err(e) => {
+                    // Log warning but continue migration
+                    eprintln!("Warning: Could not convert path {} to relative: {}", asset.path, e);
+                }
+            }
+        }
+        
+        // Update storage last modified
+        self.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+        
+        Ok(())
+    }
+    
     /// Find and load JSON storage from the specified path or create a new one
     pub fn load_or_create(vql_path: &Path) -> Result<Self> {
         let json_file_path = vql_path.join("vql_storage.json");
@@ -184,8 +218,11 @@ impl JsonStorage {
             let content = fs::read_to_string(&json_file_path)
                 .context(format!("Failed to read VQL storage at {}", json_file_path.display()))?;
                 
-            let storage: JsonStorage = serde_json::from_str(&content)
+            let mut storage: JsonStorage = serde_json::from_str(&content)
                 .context("Failed to parse VQL JSON storage")?;
+            
+            // Migrate paths to relative if needed
+            storage.migrate_paths_to_relative()?;
                 
             Ok(storage)
         } else {
@@ -425,12 +462,17 @@ impl JsonStorage {
             return Err(anyhow::anyhow!("Asset type {} does not exist", asset_type));
         }
         
+        // Convert path to relative if needed
+        let workspace_root = find_workspace_root()?;
+        let path_resolver = PathResolver::with_root(workspace_root);
+        let relative_path = path_resolver.to_relative(path)?;
+        
         // Create new asset reference
         let asset_reference = AssetReference {
             short_name: short_name.to_string(),
             entity: entity.to_string(),
             asset_type: asset_type.to_string(),
-            path: path.to_string(),
+            path: relative_path,
             last_modified: Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string(),
             exemplar: false,
             principle_reviews: HashMap::new(),

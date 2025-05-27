@@ -8,6 +8,7 @@ use std::io::{BufRead, BufReader};
 use std::collections::HashMap;
 
 use crate::models::json_storage::{JsonStorage, find_vql_storage};
+use crate::utils::path::{PathResolver, find_workspace_root};
 
 /// Process a command (with or without colon prefix) or asset.method format
 /// Process a command in either LLM format or CLI format
@@ -565,6 +566,10 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                 return setup_vql_directory();
             }
         },
+        "migrate-paths" => {
+            // Migrate paths: -migrate-paths
+            return migrate_paths_to_relative();
+        },
         _ => return Err(anyhow!("Unknown command: {}", command)),
     }
 }
@@ -682,6 +687,58 @@ fn setup_vql_directory_in_path(path: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Migrate all asset paths from absolute to relative
+fn migrate_paths_to_relative() -> Result<()> {
+    // Find VQL storage
+    let (vql_dir, mut storage) = find_vql_storage()
+        .context("Failed to find or load VQL storage")?;
+    
+    println!("{} Starting path migration...", "INFO:".blue().bold());
+    
+    // Get workspace root - must have VQL directory
+    let workspace_root = find_workspace_root()
+        .context("Cannot find VQL directory. Migration requires VQL to be initialized.")?;
+    println!("Workspace root (VQL parent): {}", workspace_root.display());
+    
+    let mut migrated_count = 0;
+    let total_assets = storage.asset_references.len();
+    
+    // Show current paths before migration
+    println!("\nAssets to migrate:");
+    for (name, asset) in &storage.asset_references {
+        let path = Path::new(&asset.path);
+        if path.is_absolute() {
+            println!("  {} {} -> will convert to relative", 
+                name.blue(), 
+                asset.path.yellow());
+            migrated_count += 1;
+        } else {
+            println!("  {} {} (already relative)", 
+                name.blue(), 
+                asset.path.green());
+        }
+    }
+    
+    if migrated_count == 0 {
+        println!("\n{} All paths are already relative. No migration needed.", 
+            "SUCCESS:".green().bold());
+        return Ok(());
+    }
+    
+    // Perform migration
+    storage.migrate_paths_to_relative()?;
+    
+    // Save changes
+    storage.save(&vql_dir)?;
+    
+    println!("\n{} Migrated {} of {} asset paths to relative format", 
+        "SUCCESS:".green().bold(), 
+        migrated_count,
+        total_assets);
+    
+    Ok(())
+}
+
 /// Display help information
 fn show_help() -> Result<()> {
     println!("{}", "VQL CLI Help".bold());
@@ -695,6 +752,7 @@ fn show_help() -> Result<()> {
     println!("  {} - Store a review", "-str".blue());
     println!("  {} - Set exemplar status", "-se".blue());
     println!("  {} - Set compliance rating", "-sc".blue());
+    println!("  {} - Migrate absolute paths to relative", "-migrate-paths".blue());
     
     println!("\n{}", "CLI Command Examples:".bold());
     println!("  {} - List all principles", "vql -pr".blue());
@@ -979,34 +1037,41 @@ fn add_asset_reference(args: &[&str]) -> Result<()> {
     // Find VQL storage first to get its directory
     let (vql_dir, mut storage) = find_vql_storage()
         .context("Failed to find or load VQL storage")?;
-        
-    // Resolve the path relative to the VQL directory
-    // First get the absolute path of the VQL directory
-    let vql_dir_abs = fs::canonicalize(&vql_dir)
-        .context("Failed to canonicalize VQL directory path")?;
-        
-    // Get the parent of the VQL directory
-    let vql_parent = vql_dir_abs.parent().unwrap_or(&vql_dir_abs);
+    
+    // Get workspace root - this will be the parent of VQL directory
+    let workspace_root = find_workspace_root()
+        .context("VQL directory not found. Assets can only be added after VQL is initialized.")?;
+    let path_resolver = PathResolver::with_root(workspace_root.clone());
     
     // Resolve the path based on whether it's absolute or relative
-    let resolved_path = if path.starts_with("/") {
-        // Absolute path
+    let resolved_path = if Path::new(path).is_absolute() {
         PathBuf::from(path)
     } else {
-        // Relative path (relative to VQL directory's parent)
-        vql_parent.join(path)
+        // Relative path (relative to current working directory)
+        env::current_dir()?.join(path)
     };
     
     // Check if the file exists
     if !resolved_path.exists() {
-        return Err(anyhow!("File not found: {}. The file must exist to be added as an asset reference. Path is resolved relative to the VQL directory's parent.", path));
+        return Err(anyhow!("File not found: {}. The file must exist to be added as an asset reference.", path));
     }
     if !resolved_path.is_file() {
         return Err(anyhow!("Path is not a file: {}. Only files can be added as asset references.", path));
-    };
+    }
+    
+    // Validate that the path is within the workspace
+    if !path_resolver.validate_workspace_boundary(&resolved_path.to_string_lossy())? {
+        return Err(anyhow!(
+            "File {} is outside the workspace boundary. Assets must be within the project workspace.", 
+            path
+        ));
+    }
+    
+    // Convert to string for storage (the storage method will handle relative conversion)
+    let path_str = resolved_path.to_string_lossy().to_string();
     
     // Add or update asset reference
-    storage.add_asset_reference(short_name, entity, asset_type, path)?;
+    storage.add_asset_reference(short_name, entity, asset_type, &path_str)?;
     
     // Save changes
     storage.save(&vql_dir)?;
