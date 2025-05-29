@@ -1,0 +1,138 @@
+{
+  "name": "vql-vscode",
+  "displayName": "VQL - Vibe Query Language",
+  "description": "Visual code quality indicators for VQL-tracked assets. Shows compliance ratings as colored badges in the file explorer.",
+  "version": "0.1.0",
+  "publisher": "vql-team",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/darraghenright/vql"
+  },
+  "homepage": "https://github.com/darraghenright/vql/tree/main/vscode-extension",
+  "bugs": {
+    "url": "https://github.com/darraghenright/vql/issues"
+  },
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Visualization", "Other"],
+  "keywords": ["vql", "code quality", "compliance", "review", "refactoring"],
+  "icon": "icons/vql-icon.png",
+  "activationEvents": [
+    "workspaceContains:**/VQL/vql_storage.json",
+    "workspaceContains:**/vql/vql_storage.json"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "vql",
+          "title": "VQL",
+          "icon": "icons/vql-icon.png"
+        }
+      ]
+    },
+    "views": {
+      "vql": [
+        {
+          "id": "vqlActions",
+          "name": "Actions"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "vql.refreshDecorations",
+        "title": "VQL: Refresh File Decorations"
+      },
+      {
+        "command": "vql.toggleDecorations",
+        "title": "VQL: Toggle Icons"
+      },
+      {
+        "command": "vql.showMatrix",
+        "title": "VQL: Show Compliance Matrix"
+      },
+      {
+        "command": "vql.setup",
+        "title": "VQL: Setup"
+      },
+      {
+        "command": "vql.loadPrinciples",
+        "title": "VQL: Load Principles"
+      },
+      {
+        "command": "vql.showMetadata",
+        "title": "VQL: Show Metadata"
+      }
+    ],
+    "colors": [
+      {
+        "id": "vql.highCompliance",
+        "description": "Color for high compliance rating",
+        "defaults": {
+          "dark": "#22c55e",
+          "light": "#16a34a",
+          "highContrast": "#22c55e"
+        }
+      },
+      {
+        "id": "vql.mediumCompliance",
+        "description": "Color for medium compliance rating",
+        "defaults": {
+          "dark": "#f59e0b",
+          "light": "#d97706",
+          "highContrast": "#f59e0b"
+        }
+      },
+      {
+        "id": "vql.lowCompliance",
+        "description": "Color for low compliance rating",
+        "defaults": {
+          "dark": "#ef4444",
+          "light": "#dc2626",
+          "highContrast": "#ef4444"
+        }
+      },
+      {
+        "id": "vql.noCompliance",
+        "description": "Color for no compliance rating",
+        "defaults": {
+          "dark": "#9ca3af",
+          "light": "#6b7280",
+          "highContrast": "#9ca3af"
+        }
+      },
+      {
+        "id": "vql.decorationForeground",
+        "description": "Default color for VQL decorations",
+        "defaults": {
+          "dark": "#9ca3af",
+          "light": "#6b7280",
+          "highContrast": "#9ca3af"
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "chokidar": "^3.5.3"
+  }
+}

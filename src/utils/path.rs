@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf, MAIN_SEPARATOR};
 use std::env;
 use anyhow::{Result, Context, anyhow};
 
-/// VQL Path Resolver for handling workspace-relative paths
+/// VQL Path Resolver for handling project-relative paths
 pub struct PathResolver {
     /// The root directory of the VQL workspace
     workspace_root: PathBuf,
@@ -21,16 +21,16 @@ impl PathResolver {
         Self { workspace_root }
     }
     
-    /// Convert an absolute path to a workspace-relative path
-    pub fn to_relative(&self, absolute_path: &str) -> Result<String> {
+    /// Convert an absolute path to a project-relative path
+    pub fn to_project_relative(&self, absolute_path: &str) -> Result<String> {
         let abs_path = Path::new(absolute_path);
         
-        // If already relative, just normalize and return
+        // If already project-relative, just normalize and return
         if abs_path.is_relative() {
             return Ok(self.normalize(absolute_path));
         }
         
-        // Convert to relative
+        // Convert to project-relative
         let relative = abs_path.strip_prefix(&self.workspace_root)
             .context(format!(
                 "Path {} is not within workspace root {}", 
@@ -42,9 +42,9 @@ impl PathResolver {
         Ok(self.normalize(&relative.to_string_lossy()))
     }
     
-    /// Convert a workspace-relative path to an absolute path
-    pub fn to_absolute(&self, relative_path: &str) -> Result<PathBuf> {
-        let rel_path = Path::new(relative_path);
+    /// Convert a project-relative path to an absolute path
+    pub fn to_absolute(&self, project_relative_path: &str) -> Result<PathBuf> {
+        let rel_path = Path::new(project_relative_path);
         
         // If already absolute, just return it
         if rel_path.is_absolute() {
@@ -151,15 +151,15 @@ mod tests {
     }
     
     #[test]
-    fn test_relative_conversion() {
+    fn test_project_relative_conversion() {
         let resolver = PathResolver::with_root(PathBuf::from("/home/user/project"));
         
-        // Test absolute to relative
-        let result = resolver.to_relative("/home/user/project/src/lib.rs").unwrap();
+        // Test absolute to project-relative
+        let result = resolver.to_project_relative("/home/user/project/src/lib.rs").unwrap();
         assert_eq!(result, "src/lib.rs");
         
-        // Test already relative
-        let result = resolver.to_relative("src/lib.rs").unwrap();
+        // Test already project-relative
+        let result = resolver.to_project_relative("src/lib.rs").unwrap();
         assert_eq!(result, "src/lib.rs");
     }
     
@@ -167,7 +167,7 @@ mod tests {
     fn test_absolute_conversion() {
         let resolver = PathResolver::with_root(PathBuf::from("/home/user/project"));
         
-        // Test relative to absolute
+        // Test project-relative to absolute
         let result = resolver.to_absolute("src/lib.rs").unwrap();
         assert_eq!(result, PathBuf::from("/home/user/project/src/lib.rs"));
         

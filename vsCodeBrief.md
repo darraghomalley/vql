@@ -10,17 +10,17 @@ The VQL VS Code plugin bridges the gap between VQL's powerful command-line capab
 
 ## 🚀 MVP Features (Priority 1 - 3 Week Sprint)
 
-### 1. Workspace-Relative Path Management 📁
+### 1. Project-Relative Path Management 📁
 **Problem**: Full paths break team collaboration and project portability  
-**Solution**: Automatic workspace-relative path conversion and storage
+**Solution**: Automatic project-relative path conversion and storage
 
 ```typescript
 // Target Architecture
 class VQLPathResolver {
   private workspaceRoot: string;
   
-  toRelative(absolutePath: string): string;
-  toAbsolute(relativePath: string): string;
+  toProjectRelative(absolutePath: string): string;
+  toAbsolute(projectRelativePath: string): string;
   normalize(inputPath: string): string; // Always forward slashes
   validateWorkspaceBoundary(path: string): boolean;
 }
@@ -28,7 +28,7 @@ class VQLPathResolver {
 
 **Requirements**:
 - [x] Auto-detect VS Code workspace root (`.vscode/` directory)
-- [x] Convert absolute → relative paths in JSON storage  
+- [x] Convert absolute → project-relative paths in JSON storage  
 - [x] Cross-platform path normalization (forward slashes)
 - [x] Migration tool for existing absolute paths
 - [x] Validate assets exist within workspace

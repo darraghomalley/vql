@@ -568,7 +568,7 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
         },
         "migrate-paths" => {
             // Migrate paths: -migrate-paths
-            return migrate_paths_to_relative();
+            return migrate_paths_to_project_relative();
         },
         _ => return Err(anyhow!("Unknown command: {}", command)),
     }
@@ -688,7 +688,7 @@ fn setup_vql_directory_in_path(path: &Path) -> Result<()> {
 }
 
 /// Migrate all asset paths from absolute to relative
-fn migrate_paths_to_relative() -> Result<()> {
+fn migrate_paths_to_project_relative() -> Result<()> {
     // Find VQL storage
     let (vql_dir, mut storage) = find_vql_storage()
         .context("Failed to find or load VQL storage")?;
@@ -726,7 +726,7 @@ fn migrate_paths_to_relative() -> Result<()> {
     }
     
     // Perform migration
-    storage.migrate_paths_to_relative()?;
+    storage.migrate_paths_to_project_relative()?;
     
     // Save changes
     storage.save(&vql_dir)?;

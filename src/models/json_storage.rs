@@ -75,30 +75,6 @@ pub struct AssetReference {
     /// Map of principle short names to their reviews
     #[serde(default)]
     pub principle_reviews: HashMap<String, Review>,
-    
-    /// Architecture quality rating (H/M/L) - kept for backward compatibility
-    pub arch_rating: Option<String>,
-    
-    /// Security quality rating (H/M/L) - kept for backward compatibility
-    pub sec_rating: Option<String>,
-    
-    /// Performance quality rating (H/M/L) - kept for backward compatibility
-    pub perf_rating: Option<String>,
-    
-    /// UI quality rating (H/M/L) - kept for backward compatibility
-    pub ui_rating: Option<String>,
-    
-    /// Architecture analysis details - kept for backward compatibility
-    pub arch_analysis: Option<String>,
-    
-    /// Security analysis details - kept for backward compatibility
-    pub sec_analysis: Option<String>,
-    
-    /// Performance analysis details - kept for backward compatibility
-    pub perf_analysis: Option<String>,
-    
-    /// UI analysis details - kept for backward compatibility
-    pub ui_analysis: Option<String>,
 }
 
 /// Represents a principle in the VQL system
@@ -177,7 +153,7 @@ impl JsonStorage {
     }
     
     /// Migrate all asset paths from absolute to relative
-    pub fn migrate_paths_to_relative(&mut self) -> Result<()> {
+    pub fn migrate_paths_to_project_relative(&mut self) -> Result<()> {
         // Get workspace root - must have VQL directory
         let workspace_root = find_workspace_root()
             .context("Cannot migrate paths without VQL directory")?;
@@ -185,20 +161,20 @@ impl JsonStorage {
         
         // Iterate through all asset references and convert paths
         for asset in self.asset_references.values_mut() {
-            // Skip if already relative
+            // Skip if already project-relative
             if !Path::new(&asset.path).is_absolute() {
                 continue;
             }
             
-            // Try to convert to relative
-            match path_resolver.to_relative(&asset.path) {
+            // Try to convert to project-relative
+            match path_resolver.to_project_relative(&asset.path) {
                 Ok(relative_path) => {
                     asset.path = relative_path;
                     asset.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
                 }
                 Err(e) => {
                     // Log warning but continue migration
-                    eprintln!("Warning: Could not convert path {} to relative: {}", asset.path, e);
+                    eprintln!("Warning: Could not convert path {} to project-relative: {}", asset.path, e);
                 }
             }
         }
@@ -221,8 +197,8 @@ impl JsonStorage {
             let mut storage: JsonStorage = serde_json::from_str(&content)
                 .context("Failed to parse VQL JSON storage")?;
             
-            // Migrate paths to relative if needed
-            storage.migrate_paths_to_relative()?;
+            // Migrate paths to project-relative if needed
+            storage.migrate_paths_to_project_relative()?;
                 
             Ok(storage)
         } else {
@@ -401,6 +377,12 @@ impl JsonStorage {
             return Err(anyhow::anyhow!("Asset type short name must be a single character"));
         }
         
+        // Validate asset type is a lowercase letter
+        let ch = short_name.chars().next().unwrap();
+        if !ch.is_ascii_lowercase() {
+            return Err(anyhow::anyhow!("Asset type short name must be a lowercase letter (a-z)"));
+        }
+        
         // Check name availability across all types
         self.check_name_availability(short_name)?;
         
@@ -422,6 +404,11 @@ impl JsonStorage {
     
     /// Add or update an entity
     pub fn add_entity(&mut self, short_name: &str, description: &str) -> Result<()> {
+        // Validate entity name is lowercase
+        if !short_name.chars().all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit()) {
+            return Err(anyhow::anyhow!("Entity short name must contain only lowercase letters and digits"));
+        }
+        
         // Check name availability across all types
         self.check_name_availability(short_name)?;
         
@@ -449,6 +436,11 @@ impl JsonStorage {
         asset_type: &str, 
         path: &str
     ) -> Result<()> {
+        // Validate asset reference name is lowercase
+        if !short_name.chars().all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit()) {
+            return Err(anyhow::anyhow!("Asset reference short name must contain only lowercase letters and digits"));
+        }
+        
         // Check name availability across all types
         self.check_name_availability(short_name)?;
         
@@ -462,28 +454,20 @@ impl JsonStorage {
             return Err(anyhow::anyhow!("Asset type {} does not exist", asset_type));
         }
         
-        // Convert path to relative if needed
+        // Convert path to project-relative if needed
         let workspace_root = find_workspace_root()?;
         let path_resolver = PathResolver::with_root(workspace_root);
-        let relative_path = path_resolver.to_relative(path)?;
+        let project_relative_path = path_resolver.to_project_relative(path)?;
         
         // Create new asset reference
         let asset_reference = AssetReference {
             short_name: short_name.to_string(),
             entity: entity.to_string(),
             asset_type: asset_type.to_string(),
-            path: relative_path,
+            path: project_relative_path,
             last_modified: Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string(),
             exemplar: false,
             principle_reviews: HashMap::new(),
-            arch_rating: None,
-            sec_rating: None,
-            perf_rating: None,
-            ui_rating: None,
-            arch_analysis: None,
-            sec_analysis: None,
-            perf_analysis: None,
-            ui_analysis: None,
         };
         
         // Add to asset references map
@@ -495,54 +479,6 @@ impl JsonStorage {
         Ok(())
     }
     
-    /// Set review data for an asset
-    pub fn set_asset_review(
-        &mut self,
-        asset_name: &str,
-        aspect: &str,
-        rating: &str,
-        analysis: &str
-    ) -> Result<()> {
-        // Find the asset
-        let asset = match self.asset_references.get_mut(asset_name) {
-            Some(asset) => asset,
-            None => return Err(anyhow::anyhow!("Asset {} not found", asset_name)),
-        };
-        
-        // Validate rating
-        if !["H", "M", "L"].contains(&rating) {
-            return Err(anyhow::anyhow!("Invalid rating: {}. Must be H, M, or L", rating));
-        }
-        
-        // Update the appropriate fields based on aspect
-        match aspect.to_lowercase().as_str() {
-            "arch" => {
-                asset.arch_rating = Some(rating.to_string());
-                asset.arch_analysis = Some(analysis.to_string());
-            },
-            "sec" => {
-                asset.sec_rating = Some(rating.to_string());
-                asset.sec_analysis = Some(analysis.to_string());
-            },
-            "perf" => {
-                asset.perf_rating = Some(rating.to_string());
-                asset.perf_analysis = Some(analysis.to_string());
-            },
-            "ui" => {
-                asset.ui_rating = Some(rating.to_string());
-                asset.ui_analysis = Some(analysis.to_string());
-            },
-            _ => return Err(anyhow::anyhow!("Invalid aspect: {}. Must be arch, sec, perf, or ui", aspect)),
-        }
-        
-        // Update asset last modified
-        asset.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
-        
-        // Update storage last modified
-        self.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
-        
-        Ok(())
-    }
     
     /// Set exemplar status for an asset
     pub fn set_asset_exemplar(&mut self, asset_name: &str, status: bool) -> Result<()> {
@@ -569,6 +505,12 @@ impl JsonStorage {
         // Validate short name (single character)
         if short_name.chars().count() != 1 {
             return Err(anyhow::anyhow!("Principle short name must be a single character"));
+        }
+        
+        // Validate principle is a capital letter
+        let ch = short_name.chars().next().unwrap();
+        if !ch.is_ascii_uppercase() {
+            return Err(anyhow::anyhow!("Principle short name must be a capital letter (A-Z)"));
         }
         
         // Check name availability across all types
@@ -632,29 +574,6 @@ impl JsonStorage {
         
         // Update storage last modified
         self.last_modified = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
-        
-        // For backward compatibility, also update the legacy fields
-        match principle {
-            "a" => {
-                asset.arch_rating = rating.map(|r| r.to_string());
-                asset.arch_analysis = Some(analysis.to_string());
-            },
-            "s" => {
-                asset.sec_rating = rating.map(|r| r.to_string());
-                asset.sec_analysis = Some(analysis.to_string());
-            },
-            "p" => {
-                asset.perf_rating = rating.map(|r| r.to_string());
-                asset.perf_analysis = Some(analysis.to_string());
-            },
-            "u" => {
-                asset.ui_rating = rating.map(|r| r.to_string());
-                asset.ui_analysis = Some(analysis.to_string());
-            },
-            _ => {
-                // For other principles, don't update legacy fields
-            }
-        }
         
         Ok(())
     }

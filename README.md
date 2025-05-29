@@ -82,7 +82,7 @@ Any changes to VQL commands should first be reflected in the canonical file to m
 
 ## Architecture
 
-VQL uses a dual-interface architecture for maximum flexibility:
+VQL uses a multi-interface architecture for maximum flexibility:
 
 ### 1. Rust CLI (Core Engine)
 - High-performance command-line tool written in Rust
@@ -97,7 +97,14 @@ VQL uses a dual-interface architecture for maximum flexibility:
 - Enables seamless VQL integration in AI coding sessions
 - Supports new refactoring tools with reference assets for pattern-based improvements
 
-The MCP server acts as a thin wrapper around the CLI, ensuring both interfaces stay in sync while providing the best experience for each use case.
+### 3. VS Code Extension (Visual Integration)
+- Real-time visual compliance indicators in the file explorer
+- Color-coded badges showing principle ratings at a glance
+- Interactive compliance matrix for comprehensive overview
+- Automatic updates when VQL storage changes
+- Seamless integration with the VQL CLI
+
+The MCP server and VS Code extension act as complementary interfaces to the CLI, ensuring all tools stay in sync while providing the best experience for each use case.
 
 ## Features
 
@@ -110,7 +117,9 @@ The MCP server acts as a thin wrapper around the CLI, ensuring both interfaces s
 - **Guided Refactoring**: AI workflows that improve code and update reviews
 - **Reference-Based Refactoring**: Use exemplar assets as patterns for improvements
 - **Flexible Principle Selection**: Use `-pr` for all principles or specify individual ones
-- **Dual Interface**: Use via CLI or MCP-enabled AI assistants
+- **Visual Indicators**: VS Code extension shows compliance badges in file explorer
+- **Compliance Matrix**: Interactive matrix view for comprehensive quality overview
+- **Multi-Interface**: Use via CLI, VS Code extension, or MCP-enabled AI assistants
 
 ## Installation
 
@@ -127,6 +136,25 @@ cp target/release/vql /usr/local/bin/
 # Or use cargo install from the project directory
 cargo install --path .
 ```
+
+### VS Code Extension
+
+The VQL VS Code extension provides visual compliance indicators directly in your editor:
+
+```bash
+# From the VQL project directory
+cd vscode-extension
+npm install
+npm run compile
+
+# Package the extension
+vsce package
+
+# Install in VS Code
+code --install-extension vql-vscode-*.vsix
+```
+
+Or install directly from the VS Code marketplace (coming soon).
 
 ### MCP Server (for AI Assistants)
 
@@ -367,14 +395,19 @@ VQL is designed for:
 3. **Technical Debt Management**: Track and improve compliance over time
 4. **Knowledge Persistence**: Maintain context across multiple AI sessions
 5. **Team Alignment**: Shared quality standards across developers and AI assistants
+6. **Visual Quality Tracking**: See compliance status at a glance in VS Code
+7. **Quality Dashboards**: Use the compliance matrix to identify improvement areas
 
 ## Roadmap
 
 - [ ] Publish to crates.io as `vibe-ql`
 - [ ] Publish MCP server to npm as `@vibe-ql/mcp-server`
+- [ ] Publish VS Code extension to marketplace
 - [ ] Additional principle templates for common frameworks
 - [ ] Integration with popular development tools
-- [ ] Metrics dashboard for tracking quality trends
+- [x] VS Code extension with visual compliance indicators
+- [x] Interactive compliance matrix view
+- [ ] Git integration for tracking quality over time
 - [ ] Team collaboration features
 
 ## Contributing
