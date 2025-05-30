@@ -1,11 +1,10 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as chokidar from 'chokidar';
 import { VQLDecorationProvider } from './decorationProvider';
 
 export class VQLStorageWatcher implements vscode.Disposable {
-    private watcher: chokidar.FSWatcher | null = null;
+    private watcher: vscode.FileSystemWatcher | null = null;
     private decorationProvider: VQLDecorationProvider;
     private changeListeners: (() => void)[] = [];
 
@@ -42,28 +41,40 @@ export class VQLStorageWatcher implements vscode.Disposable {
         }
 
         if (pathToWatch) {
-            this.watcher = chokidar.watch(pathToWatch, {
-                persistent: true,
-                ignoreInitial: true
-            });
+            // Use VS Code's built-in file watcher
+            const pattern = new vscode.RelativePattern(workspaceRoot, path.relative(workspaceRoot, pathToWatch));
+            this.watcher = vscode.workspace.createFileSystemWatcher(pattern);
 
-            this.watcher.on('change', () => {
+            this.watcher.onDidChange(() => {
                 console.log('VQL storage changed, refreshing decorations');
-                this.decorationProvider.refresh();
-                
-                // Notify all listeners
-                this.changeListeners.forEach(listener => listener());
+                // Add a small delay to ensure file write is complete
+                setTimeout(() => {
+                    this.decorationProvider.refresh();
+                    
+                    // Notify all listeners
+                    this.changeListeners.forEach(listener => listener());
+                }, 100);
             });
 
-            this.watcher.on('error', (error) => {
-                console.error('VQL storage watcher error:', error);
+            // Also watch for creation in case file is deleted and recreated
+            this.watcher.onDidCreate(() => {
+                console.log('VQL storage created, refreshing decorations');
+                // Add a small delay to ensure file write is complete
+                setTimeout(() => {
+                    this.decorationProvider.refresh();
+                    
+                    // Notify all listeners
+                    this.changeListeners.forEach(listener => listener());
+                }, 100);
             });
+
+            console.log(`Watching VQL storage at: ${pathToWatch}`);
         }
     }
 
     dispose(): void {
         if (this.watcher) {
-            this.watcher.close();
+            this.watcher.dispose();
             this.watcher = null;
         }
     }

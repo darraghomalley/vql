@@ -28,6 +28,11 @@ When working on or testing the VS Code extension:
 
 ## Important Commands
 
+### Building and Installing
+- Build: `cargo build --release`
+- Install: `./install.sh` (updates both cargo and user bin locations)
+- Check version: `vql --version`
+
 ### Linting and Type Checking
 - Rust: `cargo check` and `cargo clippy`
 - TypeScript (in vscode-extension): `npm run compile`
@@ -35,6 +40,13 @@ When working on or testing the VS Code extension:
 ### Running Tests
 - Rust: `cargo test`
 - VS Code Extension: Use F5 to test in Extension Development Host
+
+## Version Management
+**Important**: Always use `./install.sh` after building to ensure all VQL binary locations are updated. The project may have binaries in:
+- `/home/darragh/.cargo/bin/vql` (cargo install location)
+- `/home/darragh/bin/vql` (user bin location)
+
+The VS Code extension uses whichever `vql` is first in PATH, so keeping these synchronized is critical.
 
 ## Project Structure
 - `/src` - Rust CLI source code
@@ -52,8 +64,43 @@ When working on or testing the VS Code extension:
 ## VS Code Extension Architecture
 - **Read operations**: Direct JSON parsing for fast visualization
 - **Write operations**: All modifications use VQL CLI commands to ensure consistency
-- The Matrix view is read-only for viewing compliance
+- The Matrix view provides interactive compliance visualization with selection support
 - The Metadata view properly uses CLI for editing principles, entities, asset types, and assets
+
+### VS Code Extension Features
+
+#### File Explorer Integration
+- **Right-click context menu**: "VQL → Add Asset Ref." on any file
+- Opens metadata panel with path pre-populated
+- Checks if file is already tracked before allowing addition
+
+#### Compliance Matrix View
+- **Interactive cell selection**: 
+  - Click any cell to view principle and asset review details
+  - Ctrl+click (Cmd+click on Mac) to select/unselect cells
+  - Selected cells show blue border overlay
+- **Batch operations** (when cells selected):
+  - Review button (placeholder for bulk review)
+  - Refactor button (placeholder for bulk refactor) 
+  - Clear button to deselect all
+- **Smart panel layout**: Shows principle details and asset review side-by-side
+
+#### Metadata Editor
+- **2x2 grid layout**:
+  - Top-left: Asset Types (30%)
+  - Bottom-left: Asset References (70%)
+  - Top-right: Entities (30%)
+  - Bottom-right: Principles (70%)
+- **Resizable panes** with no minimum constraints
+- **Minimal UI**: Simple "+" buttons for adding items
+
+## Next Work Item: AI Actions via UI
+We are implementing a Command Queue Pattern to enable AI-driven actions from VS Code:
+- See `aiActionsViaUi.md` for detailed design proposal
+- Allows right-click → Review/Refactor actions in VS Code
+- Commands are queued in `.vql/pending-commands.json`
+- User triggers processing in Claude with "Process VQL commands"
+- MCP server will get new tools: `get_pending_commands`, `update_command_status`, `clear_command_queue`
 
 ## Creating Test VQL Storage Files
 

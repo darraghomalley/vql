@@ -19,10 +19,7 @@
   "categories": ["Visualization", "Other"],
   "keywords": ["vql", "code quality", "compliance", "review", "refactoring"],
   "icon": "icons/vql-icon.png",
-  "activationEvents": [
-    "workspaceContains:**/VQL/vql_storage.json",
-    "workspaceContains:**/vql/vql_storage.json"
-  ],
+  "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
     "viewsContainers": {
@@ -38,7 +35,8 @@
       "vql": [
         {
           "id": "vqlActions",
-          "name": "Actions"
+          "name": "Actions",
+          "when": "true"
         }
       ]
     },
@@ -66,6 +64,52 @@
       {
         "command": "vql.showMetadata",
         "title": "VQL: Show Metadata"
+      },
+      {
+        "command": "vql.addAssetReference",
+        "title": "Add Asset Ref."
+      },
+      {
+        "command": "vql.refreshMatrix",
+        "title": "Refresh (VQL)",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "vql.refreshMetadata",
+        "title": "Refresh (VQL)",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "submenu": "vql",
+          "group": "2_workspace"
+        }
+      ],
+      "vql": [
+        {
+          "command": "vql.addAssetReference",
+          "when": "resourceScheme == file"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "vql.refreshMatrix",
+          "when": "activeWebviewPanelId == 'vqlMatrix'",
+          "group": "navigation"
+        },
+        {
+          "command": "vql.refreshMetadata", 
+          "when": "activeWebviewPanelId == 'vqlMetadata'",
+          "group": "navigation"
+        }
+      ]
+    },
+    "submenus": [
+      {
+        "id": "vql",
+        "label": "VQL"
       }
     ],
     "colors": [
@@ -131,8 +175,5 @@
     "@typescript-eslint/parser": "^6.15.0",
     "eslint": "^8.56.0",
     "typescript": "^5.3.3"
-  },
-  "dependencies": {
-    "chokidar": "^3.5.3"
   }
 }

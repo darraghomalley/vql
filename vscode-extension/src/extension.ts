@@ -19,8 +19,17 @@ let treeProvider: VQLTreeProvider;
 let decorationsEnabled = true;
 let decorationProviderDisposable: vscode.Disposable | undefined;
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     console.log('VQL extension is now active');
+    
+    // Check VQL CLI version
+    try {
+        const { stdout } = await execAsync('vql --version');
+        console.log('VQL CLI version:', stdout.trim());
+    } catch (error) {
+        console.error('Failed to check VQL version:', error);
+        vscode.window.showWarningMessage('VQL CLI not found or version check failed');
+    }
 
     // Create decoration provider
     decorationProvider = new VQLDecorationProvider();
@@ -35,7 +44,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Create tree provider for activity bar
     treeProvider = new VQLTreeProvider(decorationsEnabled);
-    vscode.window.registerTreeDataProvider('vqlActions', treeProvider);
+    const treeDataProvider = vscode.window.registerTreeDataProvider('vqlActions', treeProvider);
+    context.subscriptions.push(treeDataProvider);
 
     // Register toggle command
     const toggleCommand = vscode.commands.registerCommand('vql.toggleDecorations', () => {
@@ -64,6 +74,18 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage('VQL decorations refreshed');
     });
     context.subscriptions.push(refreshCommand);
+
+    // Register matrix refresh command
+    const refreshMatrixCommand = vscode.commands.registerCommand('vql.refreshMatrix', () => {
+        matrixViewProvider.refresh();
+    });
+    context.subscriptions.push(refreshMatrixCommand);
+
+    // Register metadata refresh command
+    const refreshMetadataCommand = vscode.commands.registerCommand('vql.refreshMetadata', () => {
+        metadataProvider.refresh();
+    });
+    context.subscriptions.push(refreshMetadataCommand);
 
     // Create matrix view provider
     matrixViewProvider = new VQLMatrixViewProvider(context);
@@ -116,13 +138,26 @@ export function activate(context: vscode.ExtensionContext) {
             await execAsync('vql -su', { cwd: workspaceRoot });
             vscode.window.showInformationMessage('VQL initialized successfully');
             
-            // Refresh decorations
+            // Refresh decorations and tree view
             decorationProvider.refresh();
+            treeProvider.refresh(decorationsEnabled);
         } catch (error: any) {
             vscode.window.showErrorMessage(`Failed to initialize VQL: ${error.message}`);
         }
     });
     context.subscriptions.push(setupCommand);
+
+    // Register add asset reference command for context menu
+    const addAssetRefCommand = vscode.commands.registerCommand('vql.addAssetReference', async (uri: vscode.Uri) => {
+        if (!uri || !uri.fsPath) {
+            vscode.window.showErrorMessage('No file selected');
+            return;
+        }
+        
+        // Use the metadata provider to show the add asset form
+        metadataProvider.showAddAssetReference(uri.fsPath);
+    });
+    context.subscriptions.push(addAssetRefCommand);
 
     // Register load principles command
     const loadPrinciplesCommand = vscode.commands.registerCommand('vql.loadPrinciples', async () => {
@@ -144,6 +179,12 @@ export function activate(context: vscode.ExtensionContext) {
         // Check if principles already exist
         try {
             const storage = JSON.parse(fs.readFileSync(vqlPath, 'utf8'));
+            console.log('VQL: Checking principles:', {
+                principlesExists: !!storage.principles,
+                principleCount: storage.principles ? Object.keys(storage.principles).length : 0,
+                principleKeys: storage.principles ? Object.keys(storage.principles) : []
+            });
+            
             if (storage.principles && Object.keys(storage.principles).length > 0) {
                 const response = await vscode.window.showWarningMessage(
                     'Principles already loaded. Load new principles?',
@@ -163,6 +204,12 @@ export function activate(context: vscode.ExtensionContext) {
             placeHolder: 'e.g., ./principles.md or /absolute/path/principles.md',
             validateInput: (value) => {
                 if (!value) return 'Path is required';
+                // Check if file exists
+                const fullPath = path.isAbsolute(value) ? value : path.join(workspaceRoot, value);
+                console.log('VQL: Validating path:', { input: value, fullPath, exists: fs.existsSync(fullPath) });
+                if (!fs.existsSync(fullPath)) {
+                    return `File not found: ${fullPath}`;
+                }
                 return null;
             }
         });
@@ -170,12 +217,50 @@ export function activate(context: vscode.ExtensionContext) {
         if (!principlesPath) return;
 
         try {
-            // Run vql -lp command
-            await execAsync(`vql -lp "${principlesPath}"`, { cwd: workspaceRoot });
+            // Run vql principles loading command with proper argument handling
+            // Use spawn for proper handling of paths with spaces
+            const { spawn } = require('child_process');
+            const result = await new Promise<{success: boolean, message: string}>((resolve) => {
+                const child = spawn('vql', ['-pr', '-get', principlesPath], { cwd: workspaceRoot });
+                let stdout = '';
+                let stderr = '';
+                
+                child.stdout.on('data', (data: Buffer) => {
+                    stdout += data.toString();
+                });
+                
+                child.stderr.on('data', (data: Buffer) => {
+                    stderr += data.toString();
+                });
+                
+                child.on('close', (code: number) => {
+                    if (code === 0) {
+                        resolve({ success: true, message: stdout });
+                    } else {
+                        resolve({ success: false, message: stderr || `Command failed with code ${code}` });
+                    }
+                });
+            });
+            
+            if (!result.success) {
+                throw new Error(result.message);
+            }
+            
+            // Log the actual output for debugging
+            console.log('VQL: Load principles output:', result.message);
+            
             vscode.window.showInformationMessage('Principles loaded successfully');
             
-            // Refresh decorations
+            // Wait a moment for file to be written completely
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Refresh decorations and tree view
             decorationProvider.refresh();
+            treeProvider.refresh(decorationsEnabled);
+            
+            // Also refresh matrix and metadata if they're open
+            matrixViewProvider.refresh();
+            metadataProvider.refresh();
         } catch (error: any) {
             vscode.window.showErrorMessage(`Failed to load principles: ${error.message}`);
         }

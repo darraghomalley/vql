@@ -1,4 +1,4 @@
-# Architecture Principles (a)
+# Architecture Principles (A)
 
 ## Core Clean Architecture
 - Independence from Frameworks: The architecture should not be tightly coupled to any specific external framework, library, or database. You should be able to use these tools as utilities without your core business logic being dependent on their lifecycle or specifics.
@@ -24,7 +24,7 @@
 - Centralized Configuration: Store settings in a single, accessible location.
 - Consistent Standards: Establish consistent coding patterns and conventions across the project.
 
-# Security Principles (s)
+# Security Principles (S)
 ## Backend
 - Input validation and sanitization.
 - Strong authentication and authorization.
@@ -51,7 +51,7 @@
 - Comprehensive logging and monitoring.
 - Regular data backups.
 
-# Performance Principles (p)
+# Performance Principles (P)
 ## Presentation Tier:
 - Minimize Client-Side Processing: Offload heavy computations and business logic to the application tier.
 - Optimize Resource Loading: Reduce the size and number of requests for static assets (e.g., images, CSS, JavaScript) through techniques like minification, compression, and bundling.
@@ -83,7 +83,7 @@
 - Infrastructure Optimization: Ensure that the underlying infrastructure (servers, network) is appropriately sized and configured.
 - Monitoring and Alerting: Implement comprehensive monitoring and alerting to proactively identify and address performance issues.
 
-# Scalability Principles (c)
+# Scalability Principles (C)
 ## Fundamentals
 - Design for horizontal scaling
 - Use stateless services

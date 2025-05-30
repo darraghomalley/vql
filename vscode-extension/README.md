@@ -22,9 +22,14 @@ The VQL VS Code extension brings real-time code quality visualization to your ed
   - 🟨 Medium compliance  
   - 🟥 Low compliance
   - **—** Bold hyphen for not reviewed (subtle grey)
-- **Click Navigation**: Click any file to open it in the editor
+- **Interactive Selection**:
+  - Click any cell to view principle and asset review details
+  - Ctrl+click (Cmd+click on Mac) to select multiple cells
+  - Selected cells show blue border overlay
+  - Batch action buttons appear when cells are selected (Review, Refactor, Clear)
+- **Click Navigation**: Click any file name to open it in the editor
 - **Resizable Panes**: Adjust the layout to your preference
-- **Principle Details**: View principle guidance (read-only)
+- **Dual Panel Details**: View principle guidance alongside asset review details
 
 ### 🔄 Real-Time Updates
 - Automatically refreshes when VQL storage changes
@@ -35,6 +40,20 @@ The VQL VS Code extension brings real-time code quality visualization to your ed
 - Uses VS Code's theme colors for consistent appearance
 - Adapts to light and dark themes
 - Respects user's color preferences
+
+### 📁 File Explorer Integration
+- **Right-click Context Menu**: Add files to VQL tracking directly
+  - Right-click any file → "VQL" → "Add Asset Ref."
+  - Opens metadata editor with file path pre-populated
+  - Automatically checks if file is already tracked
+
+### 📝 Metadata Editor
+- **2x2 Grid Layout**: Organized editing interface
+  - Asset Types (top-left) and Asset References (bottom-left)
+  - Entities (top-right) and Principles (bottom-right)
+- **Resizable Panes**: Adjust to your workflow needs
+- **Minimal UI**: Clean "+" buttons for adding new items
+- **CLI Integration**: All edits use VQL commands for consistency
 
 ## Installation
 
@@ -113,7 +132,11 @@ code .
 - **Columns**: Your defined principles
 - **Cells**: Compliance ratings (🟩🟨🟥 or —)
 - **File Names**: Colored by overall compliance
-- Click cells to see review details and principle guidance
+- **Interaction**:
+  - Click cells to see review details and principle guidance
+  - Ctrl+click to select multiple cells for batch operations
+  - Use Review/Refactor buttons for bulk actions (coming soon)
+  - Clear button to deselect all
 
 ### Commands
 

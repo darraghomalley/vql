@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
 import * as child_process from 'child_process';
 import { VQLStorageReader } from './storageReader';
@@ -58,6 +57,9 @@ export class VQLMetadataProvider {
                         case 'savePrinciple':
                             await this.savePrinciple(message.short, message.long, message.guidance);
                             break;
+                        case 'refresh':
+                            this.refresh();
+                            break;
                     }
                 },
                 null,
@@ -90,7 +92,7 @@ export class VQLMetadataProvider {
     }
 
     private async saveEntity(short: string, long: string): Promise<void> {
-        const result = await this.runVQLCommand(['-ae', short, long]);
+        const result = await this.runVQLCommand(['-er', '-add', short, long]);
         if (result.success) {
             vscode.window.showInformationMessage(`Entity ${short} saved successfully`);
             this.refresh();
@@ -100,7 +102,7 @@ export class VQLMetadataProvider {
     }
 
     private async saveAssetType(short: string, description: string): Promise<void> {
-        const result = await this.runVQLCommand(['-at', short, description]);
+        const result = await this.runVQLCommand(['-at', '-add', short, description]);
         if (result.success) {
             vscode.window.showInformationMessage(`Asset Type ${short} saved successfully`);
             this.refresh();
@@ -110,12 +112,16 @@ export class VQLMetadataProvider {
     }
 
     private async saveAssetReference(short: string, entity: string, assetType: string, path: string, exemplar: boolean): Promise<void> {
-        const args = ['-aa', short, entity, assetType, path];
-        if (exemplar) {
-            args.push('-x');
-        }
+        // First add the asset reference
+        const result = await this.runVQLCommand(['-ar', '-add', short, entity, assetType, path]);
         
-        const result = await this.runVQLCommand(args);
+        // If exemplar flag is set, run separate command to set exemplar
+        if (result.success && exemplar) {
+            const exemplarResult = await this.runVQLCommand(['-se', short, 't']);
+            if (!exemplarResult.success) {
+                vscode.window.showWarningMessage(`Asset added but failed to set as exemplar: ${exemplarResult.message}`);
+            }
+        }
         if (result.success) {
             vscode.window.showInformationMessage(`Asset Reference ${short} saved successfully`);
             this.refresh();
@@ -125,7 +131,7 @@ export class VQLMetadataProvider {
     }
 
     private async savePrinciple(short: string, long: string, guidance: string): Promise<void> {
-        const result = await this.runVQLCommand(['-ap', short, long, guidance]);
+        const result = await this.runVQLCommand(['-pr', '-add', short, long, guidance]);
         if (result.success) {
             vscode.window.showInformationMessage(`Principle ${short} saved successfully`);
             this.refresh();
@@ -133,6 +139,55 @@ export class VQLMetadataProvider {
             vscode.window.showErrorMessage(`Failed to save principle: ${result.message}`);
         }
     }
+
+    public showAddAssetReference(filePath: string): void {
+        // First show the panel
+        this.show();
+
+        // Get workspace folder
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders) {
+            vscode.window.showErrorMessage('No workspace folder found');
+            return;
+        }
+
+        const workspaceRoot = workspaceFolders[0].uri.fsPath;
+        
+        // Check if file is within workspace
+        if (!filePath.startsWith(workspaceRoot)) {
+            vscode.window.showErrorMessage('File must be within the workspace');
+            return;
+        }
+
+        // Calculate relative path
+        const relativePath = path.relative(workspaceRoot, filePath).replace(/\\/g, '/');
+
+        // Check if asset already exists
+        const storage = this.storageReader.getStorage();
+        if (storage) {
+            const existingAsset = Object.values(storage.asset_references).find(
+                asset => asset.path === relativePath
+            );
+
+            if (existingAsset) {
+                vscode.window.showInformationMessage(
+                    `File is already tracked as asset '${existingAsset.short_name}' (${existingAsset.entity}${existingAsset.asset_type})`
+                );
+                return;
+            }
+        }
+
+        // Wait a bit for panel to be ready, then send message
+        setTimeout(() => {
+            if (this.panel) {
+                this.panel.webview.postMessage({
+                    command: 'showAddAssetReferenceForm',
+                    path: relativePath
+                });
+            }
+        }, 100);
+    }
+
 
     private updateContent(): void {
         if (!this.panel) return;
@@ -181,14 +236,13 @@ export class VQLMetadataProvider {
             display: flex;
             flex-direction: column;
             gap: 10px;
-            min-width: 400px;
         }
 
         .right-pane {
             flex: 0 0 50%;
             display: flex;
             flex-direction: column;
-            min-width: 400px;
+            gap: 10px;
         }
 
         .section {
@@ -197,7 +251,6 @@ export class VQLMetadataProvider {
             border: 1px solid var(--vscode-panel-border);
             padding: 20px;
             overflow-y: auto;
-            min-height: 150px;
         }
 
         .section h3 {
@@ -371,36 +424,36 @@ export class VQLMetadataProvider {
 <body>
     <div class="main-container">
         <div class="left-pane" id="leftPane">
-            <div class="section" id="entitiesSection">
-                <h3>
-                    <span>Entities</span>
-                    <button class="add-button" onclick="addEntity()">Add Entity</button>
-                </h3>
-                <div id="entitiesContent"></div>
-            </div>
-            <div class="resize-handle-horizontal"></div>
-            <div class="section" id="assetTypesSection">
+            <div class="section" id="assetTypesSection" style="flex: 0 0 30%;">
                 <h3>
                     <span>Asset Types</span>
-                    <button class="add-button" onclick="addAssetType()">Add Asset Type</button>
+                    <button class="add-button" onclick="addAssetType()">+</button>
                 </h3>
                 <div id="assetTypesContent"></div>
             </div>
-            <div class="resize-handle-horizontal"></div>
-            <div class="section" id="assetReferencesSection">
+            <div class="resize-handle-horizontal" id="leftHorizontalResize"></div>
+            <div class="section" id="assetReferencesSection" style="flex: 0 0 70%;">
                 <h3>
                     <span>Asset References</span>
-                    <button class="add-button" onclick="addAssetReference()">Add Asset Reference</button>
+                    <button class="add-button" onclick="addAssetReference()">+</button>
                 </h3>
                 <div id="assetReferencesContent"></div>
             </div>
         </div>
         <div class="resize-handle-vertical" id="verticalResize"></div>
         <div class="right-pane" id="rightPane">
-            <div class="section" id="principlesSection">
+            <div class="section" id="entitiesSection" style="flex: 0 0 30%;">
+                <h3>
+                    <span>Entities</span>
+                    <button class="add-button" onclick="addEntity()">+</button>
+                </h3>
+                <div id="entitiesContent"></div>
+            </div>
+            <div class="resize-handle-horizontal" id="rightHorizontalResize"></div>
+            <div class="section" id="principlesSection" style="flex: 0 0 70%;">
                 <h3>
                     <span>Principles</span>
-                    <button class="add-button" onclick="addPrinciple()">Add Principle</button>
+                    <button class="add-button" onclick="addPrinciple()">+</button>
                 </h3>
                 <div id="principlesContent"></div>
             </div>
@@ -418,8 +471,11 @@ export class VQLMetadataProvider {
             if (message.command === 'updateMetadata') {
                 metadata = message;
                 renderAll();
+            } else if (message.command === 'showAddAssetReferenceForm') {
+                showAssetReferenceForm('', null, message.path);
             }
         });
+
 
         function renderAll() {
             if (!metadata) return;
@@ -608,7 +664,7 @@ export class VQLMetadataProvider {
             showAssetReferenceForm(short, ref);
         }
 
-        function showAssetReferenceForm(short = '', ref = null) {
+        function showAssetReferenceForm(short = '', ref = null, prePath = null) {
             const content = document.getElementById('assetReferencesContent');
             
             // Create entity options
@@ -637,7 +693,7 @@ export class VQLMetadataProvider {
                     </div>
                     <div class="form-field">
                         <label>Path</label>
-                        <input type="text" id="assetRefPath" value="\${ref?.path || ''}">
+                        <input type="text" id="assetRefPath" value="\${prePath || ref?.path || ''}">
                     </div>
                     <div class="form-field">
                         <label>
@@ -651,6 +707,13 @@ export class VQLMetadataProvider {
                     </div>
                 </div>
             \`;
+            
+            // Focus on short name field if this was triggered by a drop
+            if (prePath) {
+                setTimeout(() => {
+                    document.getElementById('assetRefShort').focus();
+                }, 100);
+            }
         }
 
         function saveAssetReference(originalShort) {
@@ -729,18 +792,22 @@ export class VQLMetadataProvider {
 
         // Resizable panes
         let isResizingVertical = false;
-        let isResizingHorizontal = false;
+        let isResizingLeftHorizontal = false;
+        let isResizingRightHorizontal = false;
 
         document.getElementById('verticalResize').addEventListener('mousedown', (e) => {
             isResizingVertical = true;
             document.body.style.cursor = 'col-resize';
         });
 
-        document.querySelectorAll('.resize-handle-horizontal').forEach(handle => {
-            handle.addEventListener('mousedown', (e) => {
-                isResizingHorizontal = true;
-                document.body.style.cursor = 'row-resize';
-            });
+        document.getElementById('leftHorizontalResize').addEventListener('mousedown', (e) => {
+            isResizingLeftHorizontal = true;
+            document.body.style.cursor = 'row-resize';
+        });
+
+        document.getElementById('rightHorizontalResize').addEventListener('mousedown', (e) => {
+            isResizingRightHorizontal = true;
+            document.body.style.cursor = 'row-resize';
         });
 
         document.addEventListener('mousemove', (e) => {
@@ -749,16 +816,35 @@ export class VQLMetadataProvider {
                 const leftPane = document.getElementById('leftPane');
                 const percentage = (e.clientX - container.offsetLeft) / container.offsetWidth * 100;
                 
-                if (percentage > 30 && percentage < 70) {
+                if (percentage > 10 && percentage < 90) {
                     leftPane.style.flex = \`0 0 \${percentage}%\`;
                     document.getElementById('rightPane').style.flex = \`0 0 \${100 - percentage - 1}%\`;
+                }
+            } else if (isResizingLeftHorizontal) {
+                const leftPane = document.getElementById('leftPane');
+                const assetTypesSection = document.getElementById('assetTypesSection');
+                const percentage = (e.clientY - leftPane.offsetTop) / leftPane.offsetHeight * 100;
+                
+                if (percentage > 10 && percentage < 90) {
+                    assetTypesSection.style.flex = \`0 0 \${percentage}%\`;
+                    document.getElementById('assetReferencesSection').style.flex = \`0 0 \${100 - percentage - 1}%\`;
+                }
+            } else if (isResizingRightHorizontal) {
+                const rightPane = document.getElementById('rightPane');
+                const entitiesSection = document.getElementById('entitiesSection');
+                const percentage = (e.clientY - rightPane.offsetTop) / rightPane.offsetHeight * 100;
+                
+                if (percentage > 10 && percentage < 90) {
+                    entitiesSection.style.flex = \`0 0 \${percentage}%\`;
+                    document.getElementById('principlesSection').style.flex = \`0 0 \${100 - percentage - 1}%\`;
                 }
             }
         });
 
         document.addEventListener('mouseup', () => {
             isResizingVertical = false;
-            isResizingHorizontal = false;
+            isResizingLeftHorizontal = false;
+            isResizingRightHorizontal = false;
             document.body.style.cursor = 'default';
         });
     </script>

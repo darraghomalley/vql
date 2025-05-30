@@ -10,6 +10,23 @@ use std::collections::HashMap;
 use crate::models::json_storage::{JsonStorage, find_vql_storage};
 use crate::utils::path::{PathResolver, find_workspace_root};
 
+/// Process a command with pre-parsed arguments (from clap)
+pub fn process_command_with_args(args: &[String]) -> Result<()> {
+    if args.is_empty() {
+        return Err(anyhow!("No command provided"));
+    }
+    
+    // Check if this is an LLM command format (starts with colon)
+    if args[0].starts_with(':') {
+        // Join back for LLM processing which expects a string
+        let command = args.join(" ");
+        return process_llm_command(&command);
+    } else {
+        // This is a CLI command format - use pre-parsed args directly
+        return process_cli_flag_command_with_args(args);
+    }
+}
+
 /// Process a command (with or without colon prefix) or asset.method format
 /// Process a command in either LLM format or CLI format
 pub fn process_command(command: &str) -> Result<()> {
@@ -257,10 +274,59 @@ fn process_cli_command(command: &str) -> Result<()> {
     Err(anyhow!("Unknown command format: {}. Commands must start with - (CLI) or : (LLM).", command))
 }
 
+/// Parse command arguments respecting quoted strings
+fn parse_command_args(command: &str) -> Vec<String> {
+    let mut args = Vec::new();
+    let mut current_arg = String::new();
+    let mut in_quotes = false;
+    let mut chars = command.chars().peekable();
+    
+    while let Some(ch) = chars.next() {
+        match ch {
+            '"' => {
+                in_quotes = !in_quotes;
+            }
+            ' ' | '\t' if !in_quotes => {
+                if !current_arg.is_empty() {
+                    args.push(current_arg.clone());
+                    current_arg.clear();
+                }
+            }
+            _ => {
+                current_arg.push(ch);
+            }
+        }
+    }
+    
+    // Add the last argument if it's not empty
+    if !current_arg.is_empty() {
+        args.push(current_arg);
+    }
+    
+    args
+}
+
+/// Process a CLI flag-based command with pre-parsed arguments
+fn process_cli_flag_command_with_args(args: &[String]) -> Result<()> {
+    if args.is_empty() {
+        return Err(anyhow!("Invalid command format"));
+    }
+    
+    // Convert String refs to &str for compatibility
+    let parts: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+    process_cli_parts(&parts)
+}
+
 /// Process a CLI flag-based command (like -pr -add)
 fn process_cli_flag_command(command: &str) -> Result<()> {
-    // Split by whitespace to separate flags
-    let parts: Vec<&str> = command.split_whitespace().collect();
+    // Split by whitespace but respect quoted strings
+    let parts = parse_command_args(command);
+    let str_parts: Vec<&str> = parts.iter().map(|s| s.as_str()).collect();
+    process_cli_parts(&str_parts)
+}
+
+/// Process CLI command parts (shared logic)
+fn process_cli_parts(parts: &[&str]) -> Result<()> {
     
     if parts.is_empty() {
         return Err(anyhow!("Invalid command format"));
@@ -277,8 +343,8 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                 return Err(anyhow!("Not enough arguments for rename. Usage: -rn old_name new_name"));
             }
             
-            let old_name = parts[1];
-            let new_name = parts[2];
+            let old_name = &parts[1];
+            let new_name = &parts[2];
             
             return rename_item(old_name, new_name);
         },
@@ -288,7 +354,7 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                 return Err(anyhow!("Not enough arguments for delete. Usage: -dl name"));
             }
             
-            let name = parts[1];
+            let name = &parts[1];
             
             return delete_item(name);
         },
@@ -310,17 +376,17 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                             return Err(anyhow!("Not enough arguments for principle add"));
                         }
                         
-                        let short_name = parts[2];
-                        let long_name = parts[3];
+                        let short_name = &parts[2];
+                        let long_name = &parts[3];
                         
                         // Check if there's a guidance string
                         let guidance = if parts.len() > 4 {
-                            Some(parts[4])
+                            Some(&parts[4])
                         } else {
                             None
                         };
                         
-                        return add_principle(short_name, long_name, guidance.as_deref());
+                        return add_principle(short_name, long_name, guidance.map(|s| *s));
                     },
                     "get" => {
                         // -pr -get "path/to/principles.md"
@@ -328,8 +394,9 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                             return Err(anyhow!("Not enough arguments for principle get. Usage: -pr -get \"path/to/principles.md\""));
                         }
                         
-                        let file_path = parts[2];
-                        return load_principles_from_md(file_path);
+                        // Join all remaining parts to handle paths with spaces
+                        let file_path = parts[2..].join(" ");
+                        return load_principles_from_md(&file_path);
                     },
                     "rn" => {
                         // -pr -rn a arch
@@ -337,8 +404,8 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                             return Err(anyhow!("Not enough arguments for principle rename. Usage: -pr -rn old_name new_name"));
                         }
                         
-                        let old_name = parts[2];
-                        let new_name = parts[3];
+                        let old_name = &parts[2];
+                        let new_name = &parts[3];
                         
                         return rename_principle(old_name, new_name);
                     },
@@ -348,7 +415,7 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                             return Err(anyhow!("Not enough arguments for principle delete. Usage: -pr -dl name"));
                         }
                         
-                        let name = parts[2];
+                        let name = &parts[2];
                         
                         return delete_principle(name);
                     },
@@ -377,8 +444,8 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                             return Err(anyhow!("Not enough arguments for entity add"));
                         }
                         
-                        let short_name = parts[2];
-                        let long_name = if parts.len() > 3 { parts[3] } else { short_name };
+                        let short_name = &parts[2];
+                        let long_name = if parts.len() > 3 { &parts[3] } else { short_name };
                         
                         return add_entity(&[short_name, long_name]);
                     },
@@ -388,8 +455,8 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                             return Err(anyhow!("Not enough arguments for entity rename. Usage: -er -rn old_name new_name"));
                         }
                         
-                        let old_name = parts[2];
-                        let new_name = parts[3];
+                        let old_name = &parts[2];
+                        let new_name = &parts[3];
                         
                         return rename_entity(old_name, new_name);
                     },
@@ -399,7 +466,7 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                             return Err(anyhow!("Not enough arguments for entity delete. Usage: -er -dl name"));
                         }
                         
-                        let name = parts[2];
+                        let name = &parts[2];
                         
                         return delete_entity(name);
                     },
@@ -428,8 +495,8 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                             return Err(anyhow!("Not enough arguments for asset type add"));
                         }
                         
-                        let short_name = parts[2];
-                        let description = parts[3];
+                        let short_name = &parts[2];
+                        let description = &parts[3];
                         
                         return add_asset_type(&[short_name, description]);
                     },
@@ -439,8 +506,8 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                             return Err(anyhow!("Not enough arguments for asset type rename. Usage: -at -rn old_name new_name"));
                         }
                         
-                        let old_name = parts[2];
-                        let new_name = parts[3];
+                        let old_name = &parts[2];
+                        let new_name = &parts[3];
                         
                         return rename_asset_type(old_name, new_name);
                     },
@@ -450,7 +517,7 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                             return Err(anyhow!("Not enough arguments for asset type delete. Usage: -at -dl name"));
                         }
                         
-                        let name = parts[2];
+                        let name = &parts[2];
                         
                         return delete_asset_type(name);
                     },
@@ -477,10 +544,10 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                         // Format: -ar -add short_name entity asset_type path (space-separated only)
                         if parts.len() >= 6 {
                             // All parameters specified
-                            let short_name = parts[2];
-                            let entity = parts[3];
-                            let asset_type = parts[4];
-                            let path = parts[5];
+                            let short_name = &parts[2];
+                            let entity = &parts[3];
+                            let asset_type = &parts[4];
+                            let path = &parts[5];
                             
                             return add_asset_reference(&[short_name, entity, asset_type, path]);
                         } else {
@@ -493,8 +560,8 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                             return Err(anyhow!("Not enough arguments for asset reference rename. Usage: -ar -rn old_name new_name"));
                         }
                         
-                        let old_name = parts[2];
-                        let new_name = parts[3];
+                        let old_name = &parts[2];
+                        let new_name = &parts[3];
                         
                         return rename_asset_reference(old_name, new_name);
                     },
@@ -504,7 +571,7 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                             return Err(anyhow!("Not enough arguments for asset delete. Usage: -ar -dl name"));
                         }
                         
-                        let name = parts[2];
+                        let name = &parts[2];
                         
                         return delete_asset_reference(name);
                     },
@@ -522,8 +589,8 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                 return Err(anyhow!("Not enough arguments for store command. Usage: -st asset_name principle \"Review Content\""));
             }
             
-            let asset_name = parts[1];
-            let principle = parts[2];
+            let asset_name = &parts[1];
+            let principle = &parts[2];
             
             // Handle quoted content properly - join remaining parts and strip quotes if present
             let content_raw = parts[3..].join(" ");
@@ -537,8 +604,8 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                 return Err(anyhow!("Not enough arguments for set exemplar command. Usage: -se asset t|f"));
             }
             
-            let asset_name = parts[1];
-            let status = parts[2];
+            let asset_name = &parts[1];
+            let status = &parts[2];
             
             return set_asset_exemplar(&[asset_name, status]);
         },
@@ -548,9 +615,9 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                 return Err(anyhow!("Not enough arguments for set compliance command. Usage: -sc asset principle H|M|L"));
             }
             
-            let asset_name = parts[1];
-            let principle = parts[2];
-            let rating = parts[3];
+            let asset_name = &parts[1];
+            let principle = &parts[2];
+            let rating = &parts[3];
             
             return set_asset_compliance(&[asset_name, principle, rating]);
         },
@@ -560,7 +627,7 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
                 // Path is provided - handle quoted paths
                 let path_raw = parts[1..].join(" ");
                 let path = path_raw.trim_matches('"');
-                return setup_vql_directory_with_args(&[path]);
+                return setup_vql_directory_with_args(&[&path]);
             } else {
                 // No path provided, use current directory
                 return setup_vql_directory();
@@ -570,7 +637,7 @@ fn process_cli_flag_command(command: &str) -> Result<()> {
             // Migrate paths: -migrate-paths
             return migrate_paths_to_project_relative();
         },
-        _ => return Err(anyhow!("Unknown command: {}", command)),
+        _ => return Err(anyhow!("Unknown command: {}", parts[0])),
     }
 }
 
@@ -857,6 +924,10 @@ fn show_pr_usage() -> Result<()> {
 fn add_principle(short_name: &str, long_name: &str, guidance: Option<&str>) -> Result<()> {
     if short_name.chars().count() != 1 {
         return Err(anyhow!("Principle short name must be a single character"));
+    }
+    
+    if !short_name.chars().all(|c| c.is_uppercase()) {
+        return Err(anyhow!("Principle short name must be uppercase (A-Z)"));
     }
     
     // Find VQL storage
@@ -1742,6 +1813,11 @@ fn get_rating_display(rating: &str) -> colored::ColoredString {
 }
 
 /// Load principles from markdown file
+pub fn load_principles_from_markdown(file_path: &str) -> Result<()> {
+    load_principles_from_md(file_path)
+}
+
+/// Load principles from markdown file (internal implementation)
 fn load_principles_from_md(file_path: &str) -> Result<()> {
     // Find VQL storage 
     let (vql_dir, mut storage) = find_vql_storage()
@@ -1769,8 +1845,8 @@ fn load_principles_from_md(file_path: &str) -> Result<()> {
     let reader = BufReader::new(file);
     let mut lines = reader.lines();
     
-    // Pattern to match principle headers - e.g. "# Architecture Principles (a)"
-    let header_regex = Regex::new(r"^# (.*) \(([a-z])\)$").unwrap();
+    // Pattern to match principle headers - e.g. "# Architecture Principles (A)" - UPPERCASE ONLY
+    let header_regex = Regex::new(r"^# (.*) \(([A-Z])\)$").unwrap();
     
     // Keep track of principles we've found
     let mut principles_added = 0;

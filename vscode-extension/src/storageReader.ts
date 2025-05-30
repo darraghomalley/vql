@@ -58,7 +58,8 @@ export class VQLStorageReader {
     }
 
     public reload(): void {
-        this.loadStorage();
+        // Re-find VQL storage in case path changed
+        this.findVQLStorage();
     }
 
     public getAssetByPath(filePath: string): AssetReference | null {

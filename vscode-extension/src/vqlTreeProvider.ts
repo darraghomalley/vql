@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export class VQLTreeProvider implements vscode.TreeDataProvider<VQLTreeItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<VQLTreeItem | undefined | null | void> = new vscode.EventEmitter<VQLTreeItem | undefined | null | void>();
@@ -10,8 +12,10 @@ export class VQLTreeProvider implements vscode.TreeDataProvider<VQLTreeItem> {
         this.decorationsEnabled = decorationsEnabled;
     }
 
-    refresh(decorationsEnabled: boolean): void {
-        this.decorationsEnabled = decorationsEnabled;
+    refresh(decorationsEnabled?: boolean): void {
+        if (decorationsEnabled !== undefined) {
+            this.decorationsEnabled = decorationsEnabled;
+        }
         this._onDidChangeTreeData.fire();
     }
 
@@ -19,9 +23,36 @@ export class VQLTreeProvider implements vscode.TreeDataProvider<VQLTreeItem> {
         return element;
     }
 
+    private isVQLInitialized(): boolean {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders) {
+            return false;
+        }
+        
+        const workspaceRoot = workspaceFolders[0].uri.fsPath;
+        const vqlPath = path.join(workspaceRoot, 'VQL', 'vql_storage.json');
+        const vqlPathLower = path.join(workspaceRoot, 'vql', 'vql_storage.json');
+        
+        return fs.existsSync(vqlPath) || fs.existsSync(vqlPathLower);
+    }
+
     getChildren(element?: VQLTreeItem): Thenable<VQLTreeItem[]> {
         if (!element) {
-            // Root level items
+            const isInitialized = this.isVQLInitialized();
+            
+            if (!isInitialized) {
+                // Show only setup when VQL is not initialized
+                return Promise.resolve([
+                    new VQLTreeItem(
+                        '🚀 Setup VQL',
+                        'Initialize VQL in this workspace',
+                        'vql.setup',
+                        vscode.TreeItemCollapsibleState.None
+                    )
+                ]);
+            }
+            
+            // Show full menu when VQL is initialized
             return Promise.resolve([
                 new VQLTreeItem(
                     `Icons: ${this.decorationsEnabled ? '🟩 On' : '🟥 Off'}`,
@@ -30,26 +61,26 @@ export class VQLTreeProvider implements vscode.TreeDataProvider<VQLTreeItem> {
                     vscode.TreeItemCollapsibleState.None
                 ),
                 new VQLTreeItem(
-                    'Show Matrix',
+                    '📊 Show Matrix',
                     'View compliance matrix',
                     'vql.showMatrix',
                     vscode.TreeItemCollapsibleState.None
                 ),
                 new VQLTreeItem(
-                    'Show Metadata',
+                    '📝 Show Metadata',
                     'Edit entities, types, and principles',
                     'vql.showMetadata',
                     vscode.TreeItemCollapsibleState.None
                 ),
                 new VQLTreeItem(
-                    'Setup VQL',
-                    'Initialize VQL in workspace',
-                    'vql.setup',
+                    '🔄 Refresh',
+                    'Refresh VQL data',
+                    'vql.refreshDecorations',
                     vscode.TreeItemCollapsibleState.None
                 ),
                 new VQLTreeItem(
-                    'Load Principles',
-                    'Load principles from markdown file',
+                    '📖 Load Principles',
+                    'Load principles from markdown',
                     'vql.loadPrinciples',
                     vscode.TreeItemCollapsibleState.None
                 )
