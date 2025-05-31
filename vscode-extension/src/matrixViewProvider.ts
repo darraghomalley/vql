@@ -26,7 +26,7 @@ export class VQLMatrixViewProvider {
         } else {
             this.panel = vscode.window.createWebviewPanel(
                 'vqlMatrix',
-                'VQL Compliance Matrix',
+                'VQL Plane',
                 vscode.ViewColumn.One,
                 {
                     enableScripts: true,
@@ -50,6 +50,9 @@ export class VQLMatrixViewProvider {
                             break;
                         case 'refresh':
                             this.refresh();
+                            break;
+                        case 'showInfo':
+                            vscode.window.showInformationMessage(message.message);
                             break;
                     }
                 },
@@ -139,11 +142,104 @@ export class VQLMatrixViewProvider {
 
         .matrix-container {
             flex: 0 0 66%;
-            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow: hidden;
             border: 1px solid var(--vscode-panel-border);
             padding: 10px;
             min-height: 200px;
             position: relative;
+        }
+
+        .matrix-pane {
+            flex: 1;
+            overflow: auto;
+            background-color: var(--vscode-editor-background);
+            min-height: 0;
+        }
+
+        .vql-pane {
+            flex: 0 0 120px;
+            display: none;
+            flex-direction: column;
+            background-color: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-panel-border);
+            padding: 10px;
+            overflow: hidden;
+        }
+
+        .natural-pane {
+            flex: 0 0 180px;
+            display: none;
+            flex-direction: column;
+            background-color: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-panel-border);
+            padding: 10px;
+            overflow: hidden;
+        }
+
+        .matrix-resize-handle {
+            height: 10px;
+            cursor: row-resize;
+            background-color: var(--vscode-widget-border);
+            position: relative;
+            user-select: none;
+            flex-shrink: 0;
+            display: none;
+        }
+
+        .matrix-resize-handle:hover {
+            background-color: var(--vscode-focusBorder);
+        }
+
+        .matrix-resize-handle::after {
+            content: '';
+            position: absolute;
+            background-color: var(--vscode-foreground);
+            opacity: 0.2;
+            height: 1px;
+            width: 30px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .matrix-pane.with-commands {
+            flex: 1;
+            min-height: 0;
+        }
+
+        .pane-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+            padding-bottom: 5px;
+        }
+
+        .pane-header h4 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .pane-textarea {
+            flex: 1;
+            width: 100%;
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            padding: 8px;
+            font-family: var(--vscode-font-family);
+            resize: none;
+            overflow-y: auto;
+        }
+
+        .vql-pane .pane-textarea {
+            font-family: monospace;
+            font-size: 12px;
         }
 
         .principle-panel {
@@ -153,6 +249,7 @@ export class VQLMatrixViewProvider {
             padding: 20px;
             overflow-y: auto;
             min-height: 150px;
+            position: relative;
         }
 
         .details-panel {
@@ -163,7 +260,56 @@ export class VQLMatrixViewProvider {
             overflow-y: auto;
             max-height: 100%;
             min-width: 300px;
+            position: relative;
         }
+
+        .toggle-button {
+            position: absolute;
+            z-index: 1000;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            padding: 6px 9px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+            box-shadow: 0 2px 8px var(--vscode-widget-shadow);
+            white-space: nowrap;
+        }
+
+        .toggle-button.in-matrix {
+            transform: rotate(90deg);
+            transform-origin: center;
+        }
+
+        .toggle-button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+
+        .asset-toggle.in-panel {
+            top: 20px;
+            right: 20px;
+        }
+
+        .asset-toggle.in-matrix {
+            position: fixed;
+            bottom: 1px;
+            right: calc(1px + 12px + 15px);
+            transform-origin: right bottom;
+        }
+
+        .principle-toggle.in-panel {
+            top: 20px;
+            right: 20px;
+        }
+
+        .principle-toggle.in-matrix {
+            position: fixed;
+            top: calc(1px + 80px + 30px);
+            right: 1px;
+            transform-origin: right top;
+        }
+
 
         /* Resizable panes */
         .resize-handle-vertical {
@@ -347,7 +493,7 @@ export class VQLMatrixViewProvider {
         /* Asset ref cells */
         .asset-ref {
             font-family: monospace;
-            font-size: 0.9em;
+            font-size: 1.35em;
             color: var(--vscode-textLink-foreground);
             font-weight: bold;
         }
@@ -418,24 +564,42 @@ export class VQLMatrixViewProvider {
     <div class="main-container">
         <div class="left-pane" id="leftPane">
             <div class="matrix-container" id="matrixContainer">
-                <h3 style="margin: 0 0 10px 0;">Compliance Matrix</h3>
-                <table id="matrix">
-                    <!-- Content will be generated by JavaScript -->
-                </table>
-                <div id="selectionActions" style="display: none; position: absolute; bottom: 10px; right: 10px;">
-                    <button id="reviewButton" style="padding: 5px 10px; cursor: pointer; background-color: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 2px; margin-right: 5px;">Review</button>
-                    <button id="refactorButton" style="padding: 5px 10px; cursor: pointer; background-color: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 2px; margin-right: 5px;">Refactor</button>
-                    <button id="clearButton" style="padding: 5px 10px; cursor: pointer; background-color: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); border: none; border-radius: 2px;">Clear</button>
+                <div class="matrix-pane" id="matrixPane">
+                    <h3 style="margin: 0 0 10px 0;">VQL Plane</h3>
+                    <table id="matrix">
+                        <!-- Content will be generated by JavaScript -->
+                    </table>
+                    <div id="selectionActions" style="display: none; position: absolute; top: 10px; right: 10px; z-index: 100;">
+                        <button id="clearButton" style="padding: 5px 10px; cursor: pointer; background-color: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); border: none; border-radius: 2px;">Clear Selection</button>
+                    </div>
+                </div>
+                <div class="matrix-resize-handle" id="matrixVqlResize"></div>
+                <div class="vql-pane" id="vqlPane">
+                    <div class="pane-header">
+                        <h4>VQL Command</h4>
+                        <button id="copyVqlButton" style="padding: 3px 8px; cursor: pointer; background-color: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 2px; font-size: 12px;">Copy</button>
+                    </div>
+                    <textarea id="vqlCommand" readonly class="pane-textarea"></textarea>
+                </div>
+                <div class="matrix-resize-handle" id="vqlNaturalResize"></div>
+                <div class="natural-pane" id="naturalPane">
+                    <div class="pane-header">
+                        <h4>Natural Language</h4>
+                        <button id="copyNaturalButton" style="padding: 3px 8px; cursor: pointer; background-color: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 2px; font-size: 12px;">Copy</button>
+                    </div>
+                    <textarea id="naturalCommand" readonly class="pane-textarea"></textarea>
                 </div>
             </div>
             <div class="resize-handle-horizontal" id="horizontalResize"></div>
             <div class="details-panel" id="detailsPanel">
+                <button class="toggle-button asset-toggle in-panel" id="assetToggle" title="Toggle Asset Review Details">Hide Asset</button>
                 <h3>Asset Review Details</h3>
                 <div class="empty">Click on a compliance square to view details</div>
             </div>
         </div>
         <div class="resize-handle-vertical" id="verticalResize"></div>
         <div class="principle-panel" id="principlePanel">
+            <button class="toggle-button principle-toggle in-panel" id="principleToggle" title="Toggle Principle Details">Hide Principle</button>
             <h3>Principle Details</h3>
             <div class="empty">Click on a principle header or compliance square to view details</div>
         </div>
@@ -461,14 +625,27 @@ export class VQLMatrixViewProvider {
             clearSelections();
         });
         
-        document.getElementById('reviewButton').addEventListener('click', () => {
-            // Placeholder for review functionality
-            console.log('Review selected cells:', Array.from(selectedCells));
+        // Add toggle functionality for panels
+        document.getElementById('assetToggle').addEventListener('click', () => {
+            toggleDetailsVisibility();
         });
         
-        document.getElementById('refactorButton').addEventListener('click', () => {
-            // Placeholder for refactor functionality
-            console.log('Refactor selected cells:', Array.from(selectedCells));
+        document.getElementById('principleToggle').addEventListener('click', () => {
+            togglePrincipleVisibility();
+        });
+        
+        document.getElementById('copyVqlButton').addEventListener('click', () => {
+            const vqlCommand = document.getElementById('vqlCommand');
+            navigator.clipboard.writeText(vqlCommand.value).then(() => {
+                vscode.postMessage({ command: 'showInfo', message: 'VQL command copied to clipboard' });
+            });
+        });
+        
+        document.getElementById('copyNaturalButton').addEventListener('click', () => {
+            const naturalCommand = document.getElementById('naturalCommand');
+            navigator.clipboard.writeText(naturalCommand.value).then(() => {
+                vscode.postMessage({ command: 'showInfo', message: 'Natural language command copied to clipboard' });
+            });
         });
         
         function clearSelections() {
@@ -476,16 +653,183 @@ export class VQLMatrixViewProvider {
             document.querySelectorAll('.compliance-cell.selected').forEach(cell => {
                 cell.classList.remove('selected');
             });
+            // Uncheck all checkboxes
+            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
             updateSelectionButtons();
+        }
+        
+        function toggleRowSelection(assetShortName, isChecked) {
+            if (!matrixData) return;
+            
+            matrixData.principles.forEach(p => {
+                const cellKey = \`\${assetShortName}-\${p}\`;
+                const cell = document.querySelector(\`[data-cell-key="\${cellKey}"]\`);
+                
+                if (isChecked) {
+                    selectedCells.add(cellKey);
+                    if (cell) cell.classList.add('selected');
+                } else {
+                    selectedCells.delete(cellKey);
+                    if (cell) cell.classList.remove('selected');
+                }
+            });
+            
+            updateSelectionButtons();
+        }
+        
+        function updateRowCheckbox(assetShortName) {
+            if (!matrixData) return;
+            
+            // Check if all principles for this asset are selected
+            const allSelected = matrixData.principles.every(p => {
+                const cellKey = \`\${assetShortName}-\${p}\`;
+                return selectedCells.has(cellKey);
+            });
+            
+            // Find the checkbox for this row and update its state
+            const checkbox = document.querySelector(\`input[data-asset="\${assetShortName}"]\`);
+            if (checkbox) {
+                checkbox.checked = allSelected;
+            }
+        }
+        
+        function toggleDetailsVisibility() {
+            const detailsPanel = document.getElementById('detailsPanel');
+            const horizontalResize = document.getElementById('horizontalResize');
+            const assetToggle = document.getElementById('assetToggle');
+            const matrixPane = document.getElementById('matrixPane');
+            const matrixContainer = document.getElementById('matrixContainer');
+            
+            if (detailsPanel.style.display === 'none') {
+                // Show details panel - move button back to panel
+                detailsPanel.style.display = 'block';
+                horizontalResize.style.display = 'block';
+                assetToggle.textContent = 'Hide Asset';
+                assetToggle.title = 'Hide Asset Review Details';
+                assetToggle.className = 'toggle-button asset-toggle in-panel';
+                detailsPanel.insertBefore(assetToggle, detailsPanel.firstChild);
+                matrixContainer.style.flex = '0 0 66%';
+            } else {
+                // Hide details panel - move button to body
+                detailsPanel.style.display = 'none';
+                horizontalResize.style.display = 'none';
+                assetToggle.textContent = 'Show Asset';
+                assetToggle.title = 'Show Asset Review Details';
+                assetToggle.className = 'toggle-button asset-toggle in-matrix';
+                document.body.appendChild(assetToggle);
+                matrixContainer.style.flex = '1';
+            }
+        }
+        
+        function togglePrincipleVisibility() {
+            const principlePanel = document.getElementById('principlePanel');
+            const verticalResize = document.getElementById('verticalResize');
+            const principleToggle = document.getElementById('principleToggle');
+            const leftPane = document.getElementById('leftPane');
+            const matrixPane = document.getElementById('matrixPane');
+            
+            if (principlePanel.style.display === 'none') {
+                // Show principle panel - move button back to panel
+                principlePanel.style.display = 'block';
+                verticalResize.style.display = 'block';
+                principleToggle.textContent = 'Hide Principle';
+                principleToggle.title = 'Hide Principle Details';
+                principleToggle.className = 'toggle-button principle-toggle in-panel';
+                principlePanel.insertBefore(principleToggle, principlePanel.firstChild);
+                leftPane.style.flex = '0 0 66%';
+            } else {
+                // Hide principle panel - move button to body
+                principlePanel.style.display = 'none';
+                verticalResize.style.display = 'none';
+                principleToggle.textContent = 'Show Principle';
+                principleToggle.title = 'Show Principle Details';
+                principleToggle.className = 'toggle-button principle-toggle in-matrix';
+                document.body.appendChild(principleToggle);
+                leftPane.style.flex = '1';
+            }
         }
         
         function updateSelectionButtons() {
             const selectionActions = document.getElementById('selectionActions');
+            const vqlPane = document.getElementById('vqlPane');
+            const naturalPane = document.getElementById('naturalPane');
+            const matrixPane = document.getElementById('matrixPane');
+            const matrixVqlResize = document.getElementById('matrixVqlResize');
+            const vqlNaturalResize = document.getElementById('vqlNaturalResize');
+            
             if (selectedCells.size > 0) {
                 selectionActions.style.display = 'block';
+                vqlPane.style.display = 'flex';
+                naturalPane.style.display = 'flex';
+                matrixVqlResize.style.display = 'block';
+                vqlNaturalResize.style.display = 'block';
+                matrixPane.classList.add('with-commands');
+                updateCommandTextBoxes();
             } else {
                 selectionActions.style.display = 'none';
+                vqlPane.style.display = 'none';
+                naturalPane.style.display = 'none';
+                matrixVqlResize.style.display = 'none';
+                vqlNaturalResize.style.display = 'none';
+                matrixPane.classList.remove('with-commands');
             }
+        }
+        
+        function updateCommandTextBoxes() {
+            if (!matrixData || selectedCells.size === 0) return;
+            
+            // Group selections by asset
+            const assetGroups = new Map();
+            selectedCells.forEach(cellKey => {
+                const [assetRef, principle] = cellKey.split('-');
+                if (!assetGroups.has(assetRef)) {
+                    assetGroups.set(assetRef, new Set());
+                }
+                assetGroups.get(assetRef).add(principle);
+            });
+            
+            // Generate VQL commands
+            const vqlCommands = [];
+            const naturalCommands = [];
+            
+            assetGroups.forEach((principles, assetRef) => {
+                // Find the asset details
+                const asset = matrixData.assets.find(a => a.short_name === assetRef);
+                if (!asset) return;
+                
+                // Sort principles alphabetically
+                const sortedPrinciples = Array.from(principles).sort();
+                
+                // VQL command
+                if (sortedPrinciples.length === matrixData.principles.length) {
+                    vqlCommands.push(\`:\${assetRef}.rv(-pr)\`);
+                } else {
+                    vqlCommands.push(\`:\${assetRef}.rv(\${sortedPrinciples.join(',')})\`);
+                }
+                
+                // Natural language command
+                const entityInfo = matrixData.entities[asset.entity];
+                const assetTypeInfo = matrixData.assetTypes[asset.asset_type];
+                const assetDescription = \`\${entityInfo ? entityInfo.description : asset.entity} \${assetTypeInfo ? assetTypeInfo.description : asset.asset_type}\`;
+                
+                let naturalText = \`Review the \${assetDescription} file (\${assetRef}) at \${asset.path}\\n\`;
+                naturalText += \`for the following principles:\\n\`;
+                
+                sortedPrinciples.forEach(p => {
+                    const principleInfo = matrixData.principleDetails[p];
+                    if (principleInfo) {
+                        naturalText += \`- \${principleInfo.long_name} (\${p}): \${principleInfo.guidance || 'No guidance available'}\\n\`;
+                    }
+                });
+                
+                naturalCommands.push(naturalText);
+            });
+            
+            // Update text boxes
+            document.getElementById('vqlCommand').value = vqlCommands.join('\\n');
+            document.getElementById('naturalCommand').value = naturalCommands.join('\\n\\n');
         }
 
         function renderMatrix() {
@@ -518,6 +862,12 @@ export class VQLMatrixViewProvider {
                 
                 headerRow.appendChild(th);
             });
+
+            // Add select all header
+            const selectAllHeader = document.createElement('th');
+            selectAllHeader.className = 'rotated sticky-header';
+            selectAllHeader.innerHTML = '<div><span>Select All</span></div>';
+            headerRow.appendChild(selectAllHeader);
 
             table.appendChild(headerRow);
 
@@ -580,6 +930,7 @@ export class VQLMatrixViewProvider {
                     
                     // Check if this cell is selected
                     const cellKey = \`\${asset.short_name}-\${p}\`;
+                    cell.setAttribute('data-cell-key', cellKey);
                     if (selectedCells.has(cellKey)) {
                         cell.classList.add('selected');
                     }
@@ -606,6 +957,7 @@ export class VQLMatrixViewProvider {
                                     cell.classList.add('selected');
                                 }
                                 updateSelectionButtons();
+                                updateRowCheckbox(asset.short_name);
                             } else {
                                 // Regular click for showing details
                                 const principleInfo = matrixData.principleDetails[p];
@@ -631,6 +983,7 @@ export class VQLMatrixViewProvider {
                                     cell.classList.add('selected');
                                 }
                                 updateSelectionButtons();
+                                updateRowCheckbox(asset.short_name);
                             } else {
                                 // Regular click - show principle panel and empty details
                                 const principleInfo = matrixData.principleDetails[p];
@@ -642,6 +995,19 @@ export class VQLMatrixViewProvider {
                     
                     row.appendChild(cell);
                 });
+
+                // Add select all checkbox
+                const selectAllCell = document.createElement('td');
+                selectAllCell.style.textAlign = 'center';
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.style.cursor = 'pointer';
+                checkbox.setAttribute('data-asset', asset.short_name);
+                checkbox.addEventListener('change', (e) => {
+                    toggleRowSelection(asset.short_name, e.target.checked);
+                });
+                selectAllCell.appendChild(checkbox);
+                row.appendChild(selectAllCell);
 
                 table.appendChild(row);
             });
@@ -759,6 +1125,8 @@ export class VQLMatrixViewProvider {
         // Resizable panes
         let isResizingVertical = false;
         let isResizingHorizontal = false;
+        let isResizingMatrixVql = false;
+        let isResizingVqlNatural = false;
 
         document.getElementById('verticalResize').addEventListener('mousedown', (e) => {
             isResizingVertical = true;
@@ -767,6 +1135,16 @@ export class VQLMatrixViewProvider {
 
         document.getElementById('horizontalResize').addEventListener('mousedown', (e) => {
             isResizingHorizontal = true;
+            document.body.style.cursor = 'row-resize';
+        });
+
+        document.getElementById('matrixVqlResize').addEventListener('mousedown', (e) => {
+            isResizingMatrixVql = true;
+            document.body.style.cursor = 'row-resize';
+        });
+
+        document.getElementById('vqlNaturalResize').addEventListener('mousedown', (e) => {
+            isResizingVqlNatural = true;
             document.body.style.cursor = 'row-resize';
         });
 
@@ -787,7 +1165,37 @@ export class VQLMatrixViewProvider {
                 
                 if (percentage > 30 && percentage < 80) {
                     matrixContainer.style.flex = \`0 0 \${percentage}%\`;
-                    document.getElementById('principlePanel').style.flex = \`0 0 \${100 - percentage - 2}%\`;
+                    document.getElementById('detailsPanel').style.flex = \`0 0 \${100 - percentage - 2}%\`;
+                }
+            } else if (isResizingMatrixVql) {
+                const matrixContainer = document.getElementById('matrixContainer');
+                const matrixPane = document.getElementById('matrixPane');
+                const vqlPane = document.getElementById('vqlPane');
+                const containerRect = matrixContainer.getBoundingClientRect();
+                const relativeY = e.clientY - containerRect.top;
+                const percentage = relativeY / containerRect.height * 100;
+                
+                if (percentage > 20 && percentage < 70) {
+                    matrixPane.style.flex = \`0 0 \${percentage}%\`;
+                    // VQL pane keeps its fixed height, natural pane gets the rest
+                }
+            } else if (isResizingVqlNatural) {
+                const matrixContainer = document.getElementById('matrixContainer');
+                const vqlPane = document.getElementById('vqlPane');
+                const naturalPane = document.getElementById('naturalPane');
+                const containerRect = matrixContainer.getBoundingClientRect();
+                const relativeY = e.clientY - containerRect.top;
+                
+                // Calculate the height for VQL pane
+                const matrixPane = document.getElementById('matrixPane');
+                const matrixHeight = matrixPane.getBoundingClientRect().height;
+                const resizeHandle1Height = 10;
+                const availableHeight = containerRect.height - matrixHeight - resizeHandle1Height - 10; // 10 for second resize handle
+                const vqlHeight = relativeY - matrixHeight - resizeHandle1Height;
+                
+                if (vqlHeight > 60 && vqlHeight < availableHeight - 60) {
+                    vqlPane.style.flex = \`0 0 \${vqlHeight}px\`;
+                    naturalPane.style.flex = \`0 0 \${availableHeight - vqlHeight}px\`;
                 }
             }
         });
@@ -795,6 +1203,8 @@ export class VQLMatrixViewProvider {
         document.addEventListener('mouseup', () => {
             isResizingVertical = false;
             isResizingHorizontal = false;
+            isResizingMatrixVql = false;
+            isResizingVqlNatural = false;
             document.body.style.cursor = 'default';
         });
     </script>

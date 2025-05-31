@@ -51,7 +51,7 @@
       },
       {
         "command": "vql.showMatrix",
-        "title": "VQL: Show Compliance Matrix"
+        "title": "VQL: Show VQL Plane"
       },
       {
         "command": "vql.setup",

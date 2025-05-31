@@ -61,7 +61,7 @@ export class VQLTreeProvider implements vscode.TreeDataProvider<VQLTreeItem> {
                     vscode.TreeItemCollapsibleState.None
                 ),
                 new VQLTreeItem(
-                    '📊 Show Matrix',
+                    '📊 Show VQL Plane',
                     'View compliance matrix',
                     'vql.showMatrix',
                     vscode.TreeItemCollapsibleState.None

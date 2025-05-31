@@ -1,259 +1,275 @@
-# AI Actions via UI - Command Queue Pattern
+# AI Actions via UI - Architectural Overview
 
 ## Overview
 
-This document outlines the implementation of AI-driven actions (review/refactor) triggered from the VS Code UI using a command queue pattern. This approach allows users to right-click on assets in the VS Code extension and queue AI workflows that Claude can process when requested.
+This document provides the architectural overview for AI-driven actions (review/refactor) triggered from the VS Code UI. The system supports multiple modes to accommodate different user workflows and integrates the VS Code extension, MCP server, and VQL CLI.
 
-## Problem Statement
+## System Architecture
 
-- Users want to trigger AI review/refactor workflows directly from VS Code UI
-- MCP architecture is one-way (AI → MCP Server, not vice versa)
-- Need a bridge between user actions in VS Code and AI execution in Claude
+The AI Actions system consists of three main components working together:
 
-## Solution: Command Queue Pattern
+1. **VS Code Extension** - User interface and action triggers
+2. **VQL MCP Server** - Bridge for AI operations and command processing
+3. **VQL CLI** - Core functionality for storage and operations
 
-### Architecture
+## Implementation Strategy
+
+We're implementing a multi-mode approach to provide flexibility while building towards full automation:
+
+### Four Modes (Implementation Order)
+
+1. **VQL Virtual Syntax Clipboard** - Copy concise VQL commands
+2. **Natural Language Clipboard** - Copy human-readable prompts
+3. **Queue for VQL MCP** - Batch processing via `:pq` command
+4. **Headless MCP** - Fully automated execution
+
+### High-Level Architecture
 
 ```
-┌─────────────┐     ┌──────────────┐     ┌─────────────────┐     ┌──────────┐
-│   VS Code   │────▶│ Command Queue│◀────│   VQL MCP      │◀────│  Claude  │
-│  Extension  │     │  (.json file) │     │    Server      │     │    AI    │
-└─────────────┘     └──────────────┘     └─────────────────┘     └──────────┘
-     Write              Read/Write            Read/Clear              Call
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           VQL AI Actions System                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌─────────────┐     ┌─────────────────┐     ┌───────────────────┐   │
+│  │   VS Code   │     │   VQL MCP       │     │    VQL CLI        │   │
+│  │  Extension  │────▶│    Server       │────▶│  (Rust Binary)    │   │
+│  └─────────────┘     └─────────────────┘     └───────────────────┘   │
+│         │                     │                         │              │
+│         │                     │                         │              │
+│         ▼                     ▼                         ▼              │
+│  ┌─────────────┐     ┌─────────────────┐     ┌───────────────────┐   │
+│  │   UI/UX     │     │  :pq Command    │     │  VQL Storage      │   │
+│  │  - Menus    │     │  Processing     │     │  (JSON Files)     │   │
+│  │  - Feedback │     │                 │     │                   │   │
+│  └─────────────┘     └─────────────────┘     └───────────────────┘   │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Components
+## Component Responsibilities
 
-#### 1. Command Queue File
-- Location: `.vql/pending-commands.json` (gitignored)
-- Format:
+### VS Code Extension (`/vscode-extension`)
+**Owner of:** User interface, mode selection, command generation
+
+**Key Features:**
+- Context menu integration in file explorer and compliance matrix
+- Mode selection and user preferences
+- Clipboard operations for Modes 1 & 2
+- Queue file management for Mode 3
+- MCP client integration for Mode 4 (future)
+
+**Implementation Details:** See `vscode-extension/aiActionsViaUi.md`
+
+### VQL MCP Server (`/mcp-server`)
+**Owner of:** AI command processing, queue consumption
+
+**Key Features:**
+- Existing VQL tools (list, add, review, refactor)
+- New `:pq` (process queue) command for Mode 3
+- Bridge between Claude sessions and VQL CLI
+- Batch processing capabilities
+
+**Required Enhancements:**
+1. Add queue reading functionality
+2. Implement `:pq` command handler
+3. Add batch processing with progress reporting
+4. Handle command status updates
+
+### VQL CLI (`/src`)
+**Owner of:** Core VQL operations, storage management
+
+**Key Features:**
+- All existing VQL functionality remains unchanged
+- Provides foundation for all AI operations
+- Manages VQL storage format and consistency
+
+**No changes required** - CLI remains the stable foundation
+
+## Integration Points
+
+### Mode 1 & 2: Clipboard Integration
+**Data Flow:**
+1. VS Code Extension generates command/prompt
+2. Copies to system clipboard
+3. User pastes into Claude session
+4. Claude executes (with or without VQL mode)
+
+**Key Considerations:**
+- Platform-specific clipboard handling
+- Character escaping and formatting
+- Clear user feedback
+
+### Mode 3: Queue Integration
+**Data Flow:**
+1. VS Code Extension writes to `.vql/pending-commands.json`
+2. User invokes `:pq` in Claude session
+3. VQL MCP Server reads queue file
+4. Processes commands sequentially
+5. Updates command status
+6. VS Code Extension monitors changes
+
+**Queue File Format:**
 ```json
 {
   "version": "1.0.0",
-  "commands": [
-    {
-      "id": "cmd_1234567890",
-      "timestamp": "2025-01-29T10:30:00Z",
-      "action": "review",
-      "asset": "uc",
-      "principles": ["A", "S", "P"],
-      "context": {
-        "file_path": "src/controllers/UserController.ts",
-        "entity": "u",
-        "asset_type": "c"
-      },
-      "status": "pending"
-    },
-    {
-      "id": "cmd_1234567891",
-      "timestamp": "2025-01-29T10:31:00Z",
-      "action": "refactor",
-      "asset": "um",
-      "principles": ["A"],
-      "reference_assets": ["uc", "pm"],
-      "context": {
-        "file_path": "src/models/UserModel.ts",
-        "entity": "u",
-        "asset_type": "m"
-      },
-      "status": "pending"
-    }
-  ]
+  "commands": [{
+    "id": "cmd_timestamp",
+    "action": "review",
+    "asset": "uc",
+    "principles": ["A", "S", "P"],
+    "path": "src/controllers/UserController.ts",
+    "status": "pending"
+  }]
 }
 ```
 
-#### 2. VS Code Extension Enhancements
+### Mode 4: Direct MCP Integration (Future)
+**Data Flow:**
+1. VS Code Extension starts/connects to `claude mcp serve`
+2. Sends prompts via MCP protocol
+3. Receives results directly
+4. Updates UI in real-time
 
-##### Context Menu Actions
-Add right-click menu items in:
-- File Explorer (for tracked assets)
-- Compliance Matrix cells
-- Asset tree view
+**Infrastructure Needs:**
+- MCP client library in VS Code extension
+- Server lifecycle management
+- Connection pooling and error handling
 
-Menu items:
-- "VQL: Review All Principles"
-- "VQL: Review Specific Principles..."
-- "VQL: Refactor All Principles"
-- "VQL: Refactor Specific Principles..."
-- "VQL: Refactor Using References..."
+## Implementation Roadmap
 
-##### Command Queue Manager
-New module: `src/commandQueueManager.ts`
-```typescript
-interface VQLCommand {
-  id: string;
-  timestamp: string;
-  action: 'review' | 'refactor';
-  asset: string;
-  principles?: string[];
-  reference_assets?: string[];
-  context: {
-    file_path: string;
-    entity: string;
-    asset_type: string;
-  };
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-}
+### Phase 1: Foundation (Weeks 1-2)
+**VS Code Extension:**
+- [ ] Add mode selection to settings
+- [ ] Implement VQL command generator (Mode 1)
+- [ ] Implement natural language generator (Mode 2)
+- [ ] Add context menu with mode submenu
+- [ ] Integrate clipboard API
+- [ ] Add success notifications
 
-class CommandQueueManager {
-  queueCommand(command: VQLCommand): Promise<void>
-  getQueuedCommands(): Promise<VQLCommand[]>
-  clearQueue(): Promise<void>
-  updateCommandStatus(id: string, status: string): Promise<void>
-}
-```
+**Testing:**
+- Manual testing with various asset types
+- Verify clipboard content across platforms
 
-##### Visual Feedback
-- Status bar item showing queue count: "VQL: 3 commands queued"
-- Notification when commands are queued
-- Different file decoration when asset has queued commands
+### Phase 2: Queue System (Weeks 3-4)
+**VS Code Extension:**
+- [ ] Implement queue file management
+- [ ] Add queue status to status bar
+- [ ] Build queue viewer panel
 
-#### 3. MCP Server Enhancements
+**MCP Server:**
+- [ ] Add queue reading functionality
+- [ ] Implement `:pq` command
+- [ ] Add progress reporting
+- [ ] Handle status updates
 
-New tools to add:
+**Testing:**
+- Queue persistence and recovery
+- Batch processing scenarios
+- Error handling
 
-##### `get_pending_commands`
-- Returns all pending commands from the queue
-- No parameters needed
-- Returns array of command objects
+### Phase 3: Refactor Support (Week 5)
+**All Components:**
+- [ ] Extend modes for refactor operations
+- [ ] Add reference asset selection UI
+- [ ] Create refactor templates
+- [ ] Test complex scenarios
 
-##### `update_command_status`
-- Parameters: `command_id`, `status`
-- Updates status to 'processing', 'completed', or 'failed'
-- Used by Claude to track progress
+### Phase 4: Headless Mode (Weeks 6-8)
+**VS Code Extension:**
+- [ ] Add MCP client dependency
+- [ ] Implement connection management
+- [ ] Build progress tracking
+- [ ] Add error recovery
 
-##### `clear_command_queue`
-- Removes completed/failed commands
-- Optional parameter to force clear all
+**Testing:**
+- End-to-end automation
+- Performance optimization
+- Error scenarios
 
-#### 4. Claude AI Workflows
+## Success Metrics
 
-##### User Triggers Processing
-User says: "Process pending VQL commands" or "Check for VQL tasks"
+### User Experience
+- Time from intent to action execution
+- Number of clicks/steps required
+- Error rate and recovery time
+- User satisfaction scores
 
-##### Claude Workflow
-```python
-# Pseudocode for Claude's execution
-commands = vql.get_pending_commands()
-for command in commands:
-    vql.update_command_status(command.id, "processing")
-    
-    if command.action == "review":
-        vql.review_asset_principles(command.asset, command.principles)
-    elif command.action == "refactor":
-        vql.refactor_asset_principles_with_references(
-            command.asset, 
-            command.principles,
-            command.reference_assets
-        )
-    
-    vql.update_command_status(command.id, "completed")
+### Technical Metrics
+- Command success rate
+- Average processing time
+- Queue throughput
+- System resource usage
 
-vql.clear_command_queue()
-```
+### Adoption Metrics
+- Mode usage distribution
+- Feature adoption rate
+- Migration from manual to automated modes
 
-## Implementation Plan
+## Design Principles
 
-### Phase 1: Core Infrastructure
-1. Create command queue file structure
-2. Implement CommandQueueManager in VS Code extension
-3. Add basic write operations from context menus
+### 1. Progressive Enhancement
+Start with simple, working solutions (clipboard) and build towards ideal automation.
 
-### Phase 2: MCP Server Integration
-1. Add queue management tools to MCP server
-2. Implement file locking for concurrent access
-3. Add status tracking capabilities
+### 2. User Choice
+Different users have different needs - support multiple workflows without forcing change.
 
-### Phase 3: UI Enhancements
-1. Add context menu items
-2. Implement status bar indicator
-3. Add visual feedback for queued items
+### 3. Fail Gracefully
+Each mode should work independently. If Mode 4 fails, users can fall back to Mode 1.
 
-### Phase 4: Advanced Features
-1. Principle selection dialog
-2. Reference asset picker
-3. Queue management view
-4. Batch operations
+### 4. Clear Feedback
+Users should always know what's happening and what to do next.
 
-## User Experience Flow
+### 5. Minimal Configuration
+Modes 1 & 2 work out of the box. Advanced modes opt-in.
 
-### Basic Review Flow
-1. User right-clicks on `UserController.ts` in VS Code
-2. Selects "VQL: Review All Principles"
-3. VS Code shows notification: "Review queued for asset 'uc'"
-4. Status bar shows: "VQL: 1 command queued"
-5. User switches to Claude
-6. Types: "Process my VQL commands"
-7. Claude executes review and stores results
-8. VS Code automatically updates decorations
+## Security Considerations
 
-### Advanced Refactor Flow
-1. User right-clicks on compliance matrix cell (asset: um, principle: A)
-2. Selects "VQL: Refactor Using References..."
-3. Dialog appears to select reference assets
-4. User selects 'uc' and 'pm' as references
-5. Command queued with full context
-6. User can queue multiple commands before processing
-7. Single Claude command processes entire queue
-
-## Benefits
-
-1. **Seamless Integration**: Natural VS Code workflow
-2. **Batch Processing**: Queue multiple commands, process once
-3. **Context Preservation**: Full context passed to AI
-4. **User Control**: Explicit trigger for AI processing
-5. **Async Workflow**: Queue now, process later
-6. **Audit Trail**: Command history in JSON file
-
-## Technical Considerations
-
-### File Locking
-- Use file system locks to prevent corruption
-- VS Code and MCP server need coordinated access
-
-### Error Handling
-- What if Claude fails mid-queue?
-- Recovery mechanisms for partial completion
-- Timeout handling for stale commands
-
-### Performance
-- Queue file size limits
-- Efficient JSON parsing/writing
-- File watcher for real-time updates
-
-### Security
-- Validate command structure
-- Prevent command injection
+### Clipboard Security
+- No sensitive data in prompts
+- Clear clipboard after paste (optional)
 - Sanitize file paths
 
-## Alternative Approaches Considered
+### Queue Security
+- Validate all commands before processing
+- Prevent command injection
+- Scope operations to workspace
 
-### Direct API Integration
-- Pros: Immediate execution, no queue needed
-- Cons: Requires API keys in VS Code, bypasses Claude Desktop
+### MCP Security (Mode 4)
+- Run server with minimal permissions
+- No network access required
+- Validate all inputs
 
-### URL Protocol Handler
-- Pros: Direct Claude Desktop integration
-- Cons: Complex setup, platform-specific, limited data passing
+## FAQ
 
-### WebSocket Server
-- Pros: Real-time bidirectional communication
-- Cons: Overly complex, requires always-running server
+### Why not start with full automation (Mode 4)?
+- Clipboard modes ship immediately with zero infrastructure
+- Users can start benefiting while we build complex features
+- Reduces risk and allows iterative improvement
 
-## Future Enhancements
+### Why support multiple modes instead of just one?
+- Different users have different workflows
+- Some prefer control, others want automation
+- Gradual adoption path from manual to automated
 
-1. **Command Templates**: Save common review/refactor patterns
-2. **Scheduled Processing**: Auto-process queue at intervals
-3. **Command History**: View past executions and results
-4. **Bulk Operations**: Select multiple files for batch processing
-5. **Custom Workflows**: User-defined AI action sequences
+### How do modes work together?
+- Each mode is independent
+- Users can mix modes (e.g., clipboard for quick tasks, queue for batch)
+- Settings allow default mode per action type
+
+### What about the existing VQL MCP server?
+- Mode 3 enhances it with `:pq` command
+- Other modes work alongside existing functionality
+- No breaking changes to current workflows
+
+## References
+
+- **Implementation Details**: `vscode-extension/aiActionsViaUi.md`
+- **VS Code Extension**: `vscode-extension/README.md`
+- **MCP Server**: `mcp-server/README.md`
+- **VQL CLI**: `README.md`
 
 ## Conclusion
 
-The Command Queue Pattern provides a pragmatic solution that:
-- Works within MCP's architectural constraints
-- Provides excellent user experience
-- Maintains clean separation of concerns
-- Scales well for future enhancements
+The multi-mode AI Actions system provides a practical path from manual clipboard operations to full automation. By starting simple and building incrementally, we can deliver value immediately while working towards the ideal seamless experience.
 
-This approach balances technical feasibility with user needs, creating a powerful bridge between VS Code's UI and Claude's AI capabilities.
+Each component (VS Code extension, MCP server, CLI) maintains clear responsibilities while working together to enable powerful AI-driven code quality workflows.
